@@ -1,6 +1,6 @@
 {
   "name": "random-access-file",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "repository": "git://github.com/mafintosh/random-access-file",
   "license": "MIT",
   "description": "Continuous reading or writing to a file using random offsets and lengths",

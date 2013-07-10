@@ -19,21 +19,30 @@ var alloc = function(size) {
 	return pool.slice(used, used += size);
 };
 
-var RandomAccessFile = function(filename) {
-	if (!(this instanceof RandomAccessFile)) return new RandomAccessFile(filename);
+var RandomAccessFile = function(filename, size) {
+	if (!(this instanceof RandomAccessFile)) return new RandomAccessFile(filename, size);
 	EventEmitter.call(this);
 
 	var self = this;
 	this.filename = filename;
 	this.open = thunky(function(callback) {
+		var onfinish = function(err, fd) {
+			if (err) {
+				self.emit('error', err);
+			} else {
+				self.emit('open');
+			}
+
+			callback(err, fd);
+		};
+
 		fs.exists(filename, function(exists) {
 			fs.open(filename, exists ? 'r+' : 'w+', function(err, fd) {
-				if (err) {
-					self.emit('error', err);
-				} else {
-					self.emit('open');
-				}
-				callback(err, fd);
+				if (err || typeof size !== 'number') return onfinish(err, fd);
+				fs.ftruncate(fd, size, function(err) {
+					if (err) return onfinish(err);
+					onfinish(null, fd);
+				});
 			});
 		});
 	});

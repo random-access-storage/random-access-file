@@ -17,12 +17,15 @@ random-access-file allows you to do just this.
 ``` js
 var randomAccessFile = require('random-access-file');
 
-var file = randomAccessFile('my-file.txt');
+var file = randomAccessFile('my-file.txt'); // an optional file size can be given as 2nd param
 
 file.write(10, new Buffer('hello'), function(err) {
     // write a buffer to offset 10
     file.read(10, 5, function(err, buffer) {
         console.log(buffer); // read 5 bytes from offset 10
+        file.close(function() {
+        	console.log('file is closed');
+        });
     });
 });
 ```
