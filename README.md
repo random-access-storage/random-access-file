@@ -17,7 +17,8 @@ random-access-file allows you to do just this.
 ``` js
 var randomAccessFile = require('random-access-file');
 
-var file = randomAccessFile('my-file.txt'); // an optional file size can be given as 2nd param
+// an optional file size can be given as 2nd param to randomAccessFile
+var file = randomAccessFile('my-file.txt');
 
 file.write(10, new Buffer('hello'), function(err) {
     // write a buffer to offset 10
