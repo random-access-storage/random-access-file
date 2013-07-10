@@ -10,7 +10,7 @@ If you are receiving a file in multiple pieces in a distributed system it can be
 these pieces to disk one by one in various places throughout the file without having to open and
 close a file descriptor all the time.
 
-__random-access-file__ allows you to do just this.
+random-access-file allows you to do just this.
 
 ## It is easy to use
 
