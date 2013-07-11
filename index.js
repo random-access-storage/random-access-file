@@ -1,5 +1,7 @@
 var fs = require('fs');
 var thunky = require('thunky');
+var mkdirp = require('mkdirp');
+var path = require('path');
 var EventEmitter = require('events').EventEmitter;
 
 var POOL_SIZE = 512*1024;
@@ -25,6 +27,7 @@ var RandomAccessFile = function(filename, size) {
 
 	var self = this;
 	this.filename = filename;
+	this.dirname = path.dirname(filename);
 	this.open = thunky(function(callback) {
 		var onfinish = function(err, fd) {
 			if (err) {
@@ -36,12 +39,15 @@ var RandomAccessFile = function(filename, size) {
 			callback(err, fd);
 		};
 
-		fs.exists(filename, function(exists) {
-			fs.open(filename, exists ? 'r+' : 'w+', function(err, fd) {
-				if (err || typeof size !== 'number') return onfinish(err, fd);
-				fs.ftruncate(fd, size, function(err) {
-					if (err) return onfinish(err);
-					onfinish(null, fd);
+		mkdirp(self.dirname, function(err) {
+			if (err) return onfinish(err);
+			fs.exists(filename, function(exists) {
+				fs.open(filename, exists ? 'r+' : 'w+', function(err, fd) {
+					if (err || typeof size !== 'number') return onfinish(err, fd);
+					fs.ftruncate(fd, size, function(err) {
+						if (err) return onfinish(err);
+						onfinish(null, fd);
+					});
 				});
 			});
 		});
