@@ -1,6 +1,5 @@
 var fs = require('fs');
 var thunky = require('thunky');
-var mkdirp = require('mkdirp');
 var path = require('path');
 var EventEmitter = require('events').EventEmitter;
 
@@ -27,27 +26,27 @@ var RandomAccessFile = function(filename, size) {
 
 	var self = this;
 	this.filename = filename;
-	this.dirname = path.dirname(filename);
+	this.fd = null;
+	this.opened = false;
 	this.open = thunky(function(callback) {
 		var onfinish = function(err, fd) {
 			if (err) {
 				self.emit('error', err);
 			} else {
+				self.fd = fd;
 				self.emit('open');
 			}
 
-			callback(err, fd);
+			callback(err, self);
 		};
 
-		mkdirp(self.dirname, function(err) {
-			if (err) return onfinish(err);
-			fs.exists(filename, function(exists) {
-				fs.open(filename, exists ? 'r+' : 'w+', function(err, fd) {
-					if (err || typeof size !== 'number') return onfinish(err, fd);
-					fs.ftruncate(fd, size, function(err) {
-						if (err) return onfinish(err);
-						onfinish(null, fd);
-					});
+		self.opened = true;
+		fs.exists(filename, function(exists) {
+			fs.open(filename, exists ? 'r+' : 'w+', function(err, fd) {
+				if (err || typeof size !== 'number') return onfinish(err, fd);
+				fs.ftruncate(fd, size, function(err) {
+					if (err) return onfinish(err);
+					onfinish(null, fd);
 				});
 			});
 		});
@@ -58,21 +57,27 @@ RandomAccessFile.prototype.__proto__ = EventEmitter.prototype;
 
 RandomAccessFile.prototype.close = function(callback) {
 	callback = callback || noop;
+
 	var self = this;
-	this.open(function(err, fd) {
+	var onclose = function() {
+		self.emit('close');
+		callback();
+	};
+
+	if (!this.opened) return process.nextTick(onclose);
+	this.open(function(err) {
 		if (err) return callback(err);
-		fs.close(fd, function(err) {
+		fs.close(self.fd, function(err) {
 			if (err) return callback(err);
-			self.emit('close');
-			callback();
+			onclose();
 		});
 	});
 };
 
 RandomAccessFile.prototype.read = function(offset, length, callback) {
-	this.open(function(err, fd) {
+	this.open(function(err, self) {
 		if (err) return callback(err);
-		fs.read(fd, alloc(length), 0, length, offset, function(err, read, buffer) {
+		fs.read(self.fd, alloc(length), 0, length, offset, function(err, read, buffer) {
 			if (read !== buffer.length) return callback(new Error('range not satisfied'));
 			callback(err, buffer);
 		});
@@ -82,9 +87,9 @@ RandomAccessFile.prototype.read = function(offset, length, callback) {
 RandomAccessFile.prototype.write = function(offset, buffer, callback) {
 	callback = callback || noop;
 	if (typeof buffer === 'string') buffer = new Buffer(buffer);
-	this.open(function(err, fd) {
+	this.open(function(err, self) {
 		if (err) return callback(err);
-		fs.write(fd, buffer, 0, buffer.length, offset, callback);
+		fs.write(self.fd, buffer, 0, buffer.length, offset, callback);
 	});
 };
 
