@@ -1,6 +1,6 @@
 {
   "name": "random-access-file",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "repository": "git://github.com/mafintosh/random-access-file",
   "license": "MIT",
   "description": "Continuous reading or writing to a file using random offsets and lengths",
@@ -15,7 +15,6 @@
     "test": "node ./tests"
   },
   "dependencies": {
-    "thunky": "~0.1.0",
-    "mkdirp": "~0.3.5"
+    "thunky": "~0.1.0"
   }
 }
