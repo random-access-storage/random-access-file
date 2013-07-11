@@ -30,13 +30,9 @@ var RandomAccessFile = function(filename, size) {
 	this.opened = false;
 	this.open = thunky(function(callback) {
 		var onfinish = function(err, fd) {
-			if (err) {
-				self.emit('error', err);
-			} else {
-				self.fd = fd;
-				self.emit('open');
-			}
-
+			if (err) return callback(err);
+			self.fd = fd;
+			self.emit('open');
 			callback(err, self);
 		};
 
