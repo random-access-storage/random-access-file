@@ -2,6 +2,7 @@ var fs = require('fs');
 var thunky = require('thunky');
 var path = require('path');
 var EventEmitter = require('events').EventEmitter;
+var util = require('util');
 
 var POOL_SIZE = 512*1024;
 
@@ -49,7 +50,7 @@ var RandomAccessFile = function(filename, size) {
 	});
 };
 
-RandomAccessFile.prototype.__proto__ = EventEmitter.prototype;
+util.inherits(RandomAccessFile, EventEmitter);
 
 RandomAccessFile.prototype.close = function(callback) {
 	callback = callback || noop;
