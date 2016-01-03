@@ -9,6 +9,7 @@ var POOL_SIZE = 512*1024;
 var noop = function() {};
 var pool = null;
 var used = 0;
+var readonlyMode = false;
 
 var alloc = function(size) {
 	if (size >= POOL_SIZE) return new Buffer(size);
@@ -21,11 +22,15 @@ var alloc = function(size) {
 	return pool.slice(used, used += size);
 };
 
-var RandomAccessFile = function(filename, size) {
-	if (!(this instanceof RandomAccessFile)) return new RandomAccessFile(filename, size);
+var RandomAccessFile = function(filename, size, readonly) {
+	if (typeof readonly === 'undefined') {
+		readonly = false;
+	}
+	if (!(this instanceof RandomAccessFile)) return new RandomAccessFile(filename, size, readonly);
 	EventEmitter.call(this);
 
 	var self = this;
+	this.readonlyMode = readonly;
 	this.filename = filename;
 	this.fd = null;
 	this.opened = false;
@@ -39,7 +44,7 @@ var RandomAccessFile = function(filename, size) {
 
 		self.opened = true;
 		fs.exists(filename, function(exists) {
-			fs.open(filename, exists ? 'r+' : 'w+', function(err, fd) {
+			fs.open(filename, self.readonlyMode ? 'r' : (exists ? 'r+' : 'w+'), function(err, fd) {
 				if (err || typeof size !== 'number') return onfinish(err, fd);
 				fs.ftruncate(fd, size, function(err) {
 					if (err) return onfinish(err);
@@ -70,6 +75,10 @@ RandomAccessFile.prototype.close = function(callback) {
 		});
 	});
 };
+
+RandomAccessFile.prototype.setReadonly = function() {
+	this.readonlyMode = true;
+}
 
 RandomAccessFile.prototype.read = function(offset, length, callback) {
 	this.open(function(err, self) {
