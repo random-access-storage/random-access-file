@@ -74,6 +74,9 @@ RandomAccessFile.prototype.close = function(callback) {
 RandomAccessFile.prototype.read = function(offset, length, callback) {
 	this.open(function(err, self) {
 		if (err) return callback(err);
+
+		if (length === 0) return callback(null, new Buffer(0));
+
 		fs.read(self.fd, alloc(length), 0, length, offset, function(err, read, buffer) {
 			if (read !== buffer.length) return callback(new Error('range not satisfied'));
 			callback(err, buffer);
