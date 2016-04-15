@@ -24,7 +24,7 @@ file.write(10, new Buffer('hello'), function(err) {
   file.read(10, 5, function(err, buffer) {
     console.log(buffer) // read 5 bytes from offset 10
     file.close(function() {
-    	console.log('file is closed');
+      console.log('file is closed');
     })
   })
 })
