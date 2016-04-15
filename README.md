@@ -6,6 +6,8 @@ Continuous reading or writing to a file using random offsets and lengths
 npm install random-access-file
 ```
 
+[![build status](http://img.shields.io/travis/mafintosh/random-access-file.svg?style=flat)](http://travis-ci.org/mafintosh/random-access-file)
+
 ## Why?
 
 If you are receiving a file in multiple pieces in a distributed system it can be useful to write these pieces to disk one by one in various places throughout the file without having to open and close a file descriptor all the time.
@@ -24,7 +26,7 @@ file.write(10, new Buffer('hello'), function(err) {
   file.read(10, 5, function(err, buffer) {
     console.log(buffer) // read 5 bytes from offset 10
     file.close(function() {
-      console.log('file is closed');
+      console.log('file is closed')
     })
   })
 })
