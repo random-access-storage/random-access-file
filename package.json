@@ -1,20 +1,27 @@
 {
   "name": "random-access-file",
-  "version": "0.3.2",
-  "repository": "git://github.com/mafintosh/random-access-file",
-  "license": "MIT",
+  "version": "0.0.0",
   "description": "Continuous reading or writing to a file using random offsets and lengths",
-  "keywords": [
-    "file",
-    "random",
-    "access",
-    "fs"
-  ],
-  "author": "Mathias Buus Madsen <mathiasbuus@gmail.com>",
+  "main": "index.js",
   "scripts": {
-    "test": "node ./tests"
+    "test": "standard && tape test.js"
   },
   "dependencies": {
-    "thunky": "~0.1.0"
-  }
+    "inherits": "^2.0.1",
+    "thunky": "^0.1.0"
+  },
+  "devDependencies": {
+    "standard": "^6.0.8",
+    "tape": "^4.5.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mafintosh/random-access-file.git"
+  },
+  "author": "Mathias Buus (@mafintosh)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mafintosh/random-access-file/issues"
+  },
+  "homepage": "https://github.com/mafintosh/random-access-file"
 }
