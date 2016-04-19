@@ -40,7 +40,12 @@ function RandomAccessFile (filename, opts) {
       self.emit('open')
 
       if (self.length || opts.truncate) return fs.ftruncate(fd, opts.truncate ? 0 : self.length, cb)
-      cb()
+
+      fs.fstat(fd, function (err, st) {
+        if (err) return cb(err)
+        self.length = st.size
+        cb()
+      })
     }
   }
 }
