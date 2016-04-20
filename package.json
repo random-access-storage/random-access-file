@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "inherits": "^2.0.1",
+    "mkdirp": "^0.5.1",
     "thunky": "^0.1.0"
   },
   "devDependencies": {

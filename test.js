@@ -104,6 +104,22 @@ tape('re-open and truncate', function (t) {
   })
 })
 
+tape('mkdir path', function (t) {
+  var name = path.join(tmp, ++i + '-folder', 'test.txt')
+  var file = raf(name)
+
+  file.write(0, Buffer('hello'), function (err) {
+    t.error(err, 'no error')
+    file.read(0, 5, function (err, buf) {
+      t.error(err, 'no error')
+      t.same(buf, Buffer('hello'))
+      t.end()
+      file.unlink()
+      file.close()
+    })
+  })
+})
+
 function gen () {
   return path.join(tmp, ++i + '.txt')
 }

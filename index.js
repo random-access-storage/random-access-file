@@ -1,6 +1,8 @@
 var thunky = require('thunky')
 var fs = require('fs')
+var path = require('path')
 var inherits = require('inherits')
+var mkdirp = require('mkdirp')
 var events = require('events')
 var c = require('constants')
 
@@ -24,7 +26,14 @@ function RandomAccessFile (filename, opts) {
   this.open()
 
   function open (cb) {
-    fs.open(filename, mode(self), onopen)
+    var dir = path.dirname(filename)
+
+    if (dir) mkdirp(dir, ondir)
+    else ondir()
+
+    function ondir () {
+      fs.open(filename, mode(self), onopen)
+    }
 
     function onopen (err, fd) {
       if (err && err.code === 'EACCES' && self.writable) {
