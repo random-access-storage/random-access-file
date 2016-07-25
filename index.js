@@ -145,15 +145,20 @@ RandomAccessFile.prototype.end = function (opts, cb) {
 
   function onopen (err) {
     if (err) return cb(err)
-    if (!atime && !mtime) return cb()
+    if (!atime && !mtime) {
+      cb()
+    } else if (atime && mtime) {
+      end(atime, mtime)
+    } else {
+      fs.fstat(self.fd, function (err, stat) {
+        if (err) return cb(err)
+        end(atime || stat.atime, mtime || stat.mtime)
+      })
+    }
+  }
 
-    fs.fstat(self.fd, function (err, stat) {
-      if (err) return cb(err)
-
-      atime = atime || stat.atime
-      mtime = mtime || stat.mtime
-      fs.futimes(self.fd, atime, mtime, cb)
-    })
+  function end (atime, mtime) {
+    fs.futimes(self.fd, atime, mtime, cb)
   }
 }
 
