@@ -120,6 +120,31 @@ tape('mkdir path', function (t) {
   })
 })
 
+tape('end', function (t) {
+  var name = gen()
+  var file = raf(name)
+
+  file.end(function (err) {
+    t.error(err, 'no error')
+    fs.stat(name, function (err, stat) {
+      t.error(err, 'no error')
+      var mtime = new Date(1000 *
+        Math.round((Date.now() + 1000 * 60 * 60) / 1000))
+      file.end({ mtime: mtime }, function (err) {
+        t.error(err, 'no error')
+        fs.stat(name, function (err, _stat) {
+          t.error(err, 'no error')
+          t.same(_stat.mtime, mtime)
+          t.same(_stat.atime, stat.atime)
+          t.end()
+          file.unlink()
+          file.close()
+        })
+      })
+    })
+  })
+})
+
 function gen () {
   return path.join(tmp, ++i + '.txt')
 }

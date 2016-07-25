@@ -129,6 +129,29 @@ RandomAccessFile.prototype.close = function (cb) {
   }
 }
 
+RandomAccessFile.prototype.end = function (opts, cb) {
+  if (typeof opts === 'function') {
+    cb = opts
+    opts = {}
+  }
+  var self = this
+  this.open(onopen)
+
+  function onopen (err) {
+    if (err) return cb(err)
+    if (!opts.atime && !opts.mtime) return cb()
+
+    fs.fstat(self.fd, function (err, stat) {
+      if (err) return cb(err)
+
+      var atime = opts.atime || stat.atime
+      var mtime = opts.mtime || stat.mtime
+
+      fs.futimes(self.fd, atime, mtime, cb)
+    })
+  }
+}
+
 RandomAccessFile.prototype.unlink = function (cb) {
   if (!cb) cb = noop
   fs.unlink(this.filename, cb)
