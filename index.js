@@ -20,6 +20,8 @@ function RandomAccessFile (filename, opts) {
   this.fd = 0
   this.readable = opts.readable !== false
   this.writable = opts.writable !== false
+  this.mtime = opts.mtime
+  this.atime = opts.atime
   this.length = opts.length || 0
   this.opened = false
   this.open = thunky(open)
@@ -134,19 +136,22 @@ RandomAccessFile.prototype.end = function (opts, cb) {
     cb = opts
     opts = {}
   }
+
+  var atime = opts.atime || this.atime
+  var mtime = opts.mtime || this.mtime
   var self = this
+
   this.open(onopen)
 
   function onopen (err) {
     if (err) return cb(err)
-    if (!opts.atime && !opts.mtime) return cb()
+    if (!atime && !mtime) return cb()
 
     fs.fstat(self.fd, function (err, stat) {
       if (err) return cb(err)
 
-      var atime = opts.atime || stat.atime
-      var mtime = opts.mtime || stat.mtime
-
+      atime = atime || stat.atime
+      mtime = mtime || stat.mtime
       fs.futimes(self.fd, atime, mtime, cb)
     })
   }
