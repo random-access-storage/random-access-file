@@ -9,10 +9,10 @@
   "dependencies": {
     "inherits": "^2.0.1",
     "mkdirp": "^0.5.1",
-    "thunky": "^0.1.0"
+    "thunky": "^1.0.1"
   },
   "devDependencies": {
-    "standard": "^6.0.8",
+    "standard": "^7.1.2",
     "tape": "^4.5.1"
   },
   "repository": {
