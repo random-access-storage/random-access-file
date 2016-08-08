@@ -57,6 +57,17 @@ Write a buffer at a specific offset.
 
 Read a buffer at a specific offset. Callback is called with the buffer read.
 
+#### `file.end([options], callback)`
+
+Call this method when the entire file has been written. Options include:
+
+``` js
+{
+  mtime: mtime, // set the file's mtime
+  atime: atime // set the file's atime
+}
+```
+
 #### `file.close([callback])`
 
 Close the underlying file descriptor.
