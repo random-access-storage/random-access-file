@@ -83,7 +83,7 @@ RandomAccessFile.prototype.read = function (offset, length, cb) {
 
     if (!length) return cb(null, buf)
     if (!self.fd) return cb(new Error('File is closed'))
-    fs.read(self.fd, buf, buf.length - offset, length, offset, onread)
+    fs.read(self.fd, buf, buf.length - length, length, offset, onread)
   }
 }
 
