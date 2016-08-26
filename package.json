@@ -12,7 +12,7 @@
     "thunky": "^1.0.1"
   },
   "devDependencies": {
-    "standard": "^7.1.2",
+    "standard": "*",
     "tape": "^4.5.1"
   },
   "repository": {
