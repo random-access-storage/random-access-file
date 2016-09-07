@@ -3,8 +3,8 @@ var fs = require('fs')
 var path = require('path')
 var inherits = require('inherits')
 var mkdirp = require('mkdirp')
-var events = require('events')
 var c = require('constants')
+var AbstractRandomAccess = require('abstract-random-access')
 
 module.exports = RandomAccessFile
 
@@ -12,7 +12,7 @@ function RandomAccessFile (filename, opts) {
   if (!(this instanceof RandomAccessFile)) return new RandomAccessFile(filename, opts)
   if (!opts) opts = {}
 
-  events.EventEmitter.call(this)
+  AbstractRandomAccess.call(this)
 
   var self = this
 
@@ -23,9 +23,7 @@ function RandomAccessFile (filename, opts) {
   this.mtime = opts.mtime
   this.atime = opts.atime
   this.length = opts.length || 0
-  this.opened = false
-  this.open = thunky(open)
-  this.open()
+  this._open = thunky(open)
 
   function open (cb) {
     var dir = path.dirname(filename)
@@ -46,9 +44,7 @@ function RandomAccessFile (filename, opts) {
 
       if (err) return cb(err)
 
-      self.opened = true
       self.fd = fd
-      self.emit('open')
 
       if (self.length || opts.truncate) return fs.ftruncate(fd, opts.truncate ? 0 : self.length, cb)
 
@@ -61,10 +57,9 @@ function RandomAccessFile (filename, opts) {
   }
 }
 
-inherits(RandomAccessFile, events.EventEmitter)
+inherits(RandomAccessFile, AbstractRandomAccess)
 
-RandomAccessFile.prototype.read = function (offset, length, cb) {
-  if (!this.opened) return openAndRead(this, offset, length, cb)
+RandomAccessFile.prototype._read = function (offset, length, cb) {
   if (!this.fd) return cb(new Error('File is closed'))
   if (!this.readable) return cb(new Error('File is not readable'))
 
@@ -87,9 +82,7 @@ RandomAccessFile.prototype.read = function (offset, length, cb) {
   }
 }
 
-RandomAccessFile.prototype.write = function (offset, buf, cb) {
-  if (!cb) cb = noop
-  if (!this.opened) return openAndWrite(this, offset, buf, cb)
+RandomAccessFile.prototype._write = function (offset, buf, cb) {
   if (!this.fd) return cb(new Error('File is closed'))
   if (!this.writable) return cb(new Error('File is not writable'))
 
@@ -111,50 +104,32 @@ RandomAccessFile.prototype.write = function (offset, buf, cb) {
   }
 }
 
-RandomAccessFile.prototype.close = function (cb) {
-  if (!cb) cb = noop
-  if (this.opened && !this.fd) return cb()
+RandomAccessFile.prototype._close = function (cb) {
+  if (!this.fd) return cb()
 
   var self = this
-  this.open(onopen)
 
-  function onopen (err) {
-    if (err) return cb()
-    fs.close(self.fd, onclose)
-  }
-
-  function onclose (err) {
+  fs.close(self.fd, function (err) {
     if (err) return cb(err)
     self.fd = 0
-    self.emit('close')
     cb()
-  }
+  })
 }
 
-RandomAccessFile.prototype.end = function (opts, cb) {
-  if (typeof opts === 'function') {
-    cb = opts
-    opts = {}
-  }
-
+RandomAccessFile.prototype._end = function (opts, cb) {
   var atime = opts.atime || this.atime
   var mtime = opts.mtime || this.mtime
   var self = this
 
-  this.open(onopen)
-
-  function onopen (err) {
-    if (err) return cb(err)
-    if (!atime && !mtime) {
-      cb()
-    } else if (atime && mtime) {
-      end(atime, mtime)
-    } else {
-      fs.fstat(self.fd, function (err, stat) {
-        if (err) return cb(err)
-        end(atime || stat.atime, mtime || stat.mtime)
-      })
-    }
+  if (!atime && !mtime) {
+    cb()
+  } else if (atime && mtime) {
+    end(atime, mtime)
+  } else {
+    fs.fstat(this.fd, function (err, stat) {
+      if (err) return cb(err)
+      end(atime || stat.atime, mtime || stat.mtime)
+    })
   }
 
   function end (atime, mtime) {
@@ -162,25 +137,8 @@ RandomAccessFile.prototype.end = function (opts, cb) {
   }
 }
 
-RandomAccessFile.prototype.unlink = function (cb) {
-  if (!cb) cb = noop
+RandomAccessFile.prototype._unlink = function (cb) {
   fs.unlink(this.filename, cb)
-}
-
-function noop () {}
-
-function openAndRead (self, offset, length, cb) {
-  self.open(function (err) {
-    if (err) return cb(err)
-    self.read(offset, length, cb)
-  })
-}
-
-function openAndWrite (self, offset, buf, cb) {
-  self.open(function (err) {
-    if (err) return cb(err)
-    self.write(offset, buf, cb)
-  })
 }
 
 function mode (self) {
