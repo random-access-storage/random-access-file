@@ -80,7 +80,10 @@ inherits(RandomAccessFile, events.EventEmitter)
 
 RandomAccessFile.prototype.read = function (offset, length, cb) {
   if (!this.opened) return openAndRead(this, offset, length, cb)
-  if (!this.fd) return cb(new Error('File is closed'))
+  if (!this.fd) {
+    debug('read() failed: fd is closed file=%s', this.filename)
+    return cb(new Error('File is closed'))
+  }
   if (!this.readable) return cb(new Error('File is not readable'))
 
   var self = this
