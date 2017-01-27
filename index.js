@@ -87,7 +87,7 @@ RandomAccessFile.prototype.read = function (offset, length, cb) {
   if (!this.readable) return cb(new Error('File is not readable'))
 
   var self = this
-  var buf = Buffer(length)
+  var buf = new Buffer(length)
 
   if (!length) return cb(null, buf)
   fs.read(this.fd, buf, 0, length, offset, onread)
