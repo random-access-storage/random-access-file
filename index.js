@@ -14,6 +14,7 @@ function RandomAccessFile (filename, opts) {
   if (!opts) opts = {}
 
   events.EventEmitter.call(this)
+  if (opts.directory) filename = path.join(opts.directory, filename)
 
   var self = this
 
