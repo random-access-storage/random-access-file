@@ -57,6 +57,11 @@ Write a buffer at a specific offset.
 
 Read a buffer at a specific offset. Callback is called with the buffer read.
 
+#### `file.del(offset, length, callback)`
+
+Will truncate the file if offset + length is larger than the current file length.
+Is otherwise a noop.
+
 #### `file.end([options], callback)`
 
 Call this method when the entire file has been written. Options include:

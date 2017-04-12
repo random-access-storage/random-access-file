@@ -148,6 +148,13 @@ RandomAccessFile.prototype.write = function (offset, buf, cb) {
   }
 }
 
+RandomAccessFile.prototype.del = function (offset, length, cb) {
+  if (!cb) cb = noop
+  if (!this.opened) return openAndDel(this, offset, length, cb)
+  if (offset + length < this.length) return cb(null)
+  fs.ftruncate(this.fd, offset + length, cb)
+}
+
 RandomAccessFile.prototype.close = function (cb) {
   if (!cb) cb = noop
   if (this.opened && !this.fd) return cb()
@@ -212,6 +219,13 @@ RandomAccessFile.prototype.unlink = function (cb) {
 }
 
 function noop () {}
+
+function openAndDel (self, offset, length, cb) {
+  self.open(function (err) {
+    if (err) return cb(err)
+    self.del(offset, length, cb)
+  })
+}
 
 function openAndRead (self, offset, length, cb) {
   self.open(function (err) {
