@@ -1,8 +1,9 @@
 var raf = require('./')
+var alloc = require('buffer-alloc-unsafe')
 
 var file = raf('hello.txt', {length: 0})
 
-var buf = Buffer(1024)
+var buf = alloc(1024)
 buf.fill('lo')
 write()
 

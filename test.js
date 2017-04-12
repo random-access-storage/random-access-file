@@ -3,8 +3,10 @@ var tape = require('tape')
 var os = require('os')
 var path = require('path')
 var fs = require('fs')
+var toBuffer = require('to-buffer')
+var alloc = require('buffer-alloc-unsafe')
 
-var tmp = path.join(os.tmpDir(), 'random-access-file-' + process.pid + '-' + Date.now())
+var tmp = path.join(os.tmpdir(), 'random-access-file-' + process.pid + '-' + Date.now())
 var i = 0
 
 try {
@@ -16,11 +18,11 @@ try {
 tape('write and read', function (t) {
   var file = raf(gen())
 
-  file.write(0, Buffer('hello'), function (err) {
+  file.write(0, toBuffer('hello'), function (err) {
     t.error(err, 'no error')
     file.read(0, 5, function (err, buf) {
       t.error(err, 'no error')
-      t.same(buf, Buffer('hello'))
+      t.same(buf, toBuffer('hello'))
       t.end()
       file.unlink()
       file.close()
@@ -33,7 +35,7 @@ tape('read empty', function (t) {
 
   file.read(0, 0, function (err, buf) {
     t.error(err, 'no error')
-    t.same(buf, Buffer(0), 'empty buffer')
+    t.same(buf, alloc(0), 'empty buffer')
     t.end()
     file.unlink()
     file.close()
@@ -54,19 +56,19 @@ tape('read range > file', function (t) {
 tape('random access write and read', function (t) {
   var file = raf(gen())
 
-  file.write(10, Buffer('hi'), function (err) {
+  file.write(10, toBuffer('hi'), function (err) {
     t.error(err, 'no error')
-    file.write(0, Buffer('hello'), function (err) {
+    file.write(0, toBuffer('hello'), function (err) {
       t.error(err, 'no error')
       file.read(10, 2, function (err, buf) {
         t.error(err, 'no error')
-        t.same(buf, Buffer('hi'))
+        t.same(buf, toBuffer('hi'))
         file.read(0, 5, function (err, buf) {
           t.error(err, 'no error')
-          t.same(buf, Buffer('hello'))
+          t.same(buf, toBuffer('hello'))
           file.read(5, 5, function (err, buf) {
             t.error(err, 'no error')
-            t.same(buf, Buffer([0, 0, 0, 0, 0]))
+            t.same(buf, toBuffer([0, 0, 0, 0, 0]))
             t.end()
           })
         })
@@ -79,12 +81,12 @@ tape('re-open', function (t) {
   var name = gen()
   var file = raf(name)
 
-  file.write(10, Buffer('hello'), function (err) {
+  file.write(10, toBuffer('hello'), function (err) {
     t.error(err, 'no error')
     var file2 = raf(name)
     file2.read(10, 5, function (err, buf) {
       t.error(err, 'no error')
-      t.same(buf, Buffer('hello'))
+      t.same(buf, toBuffer('hello'))
       t.end()
     })
   })
@@ -94,7 +96,7 @@ tape('re-open and truncate', function (t) {
   var name = gen()
   var file = raf(name)
 
-  file.write(10, Buffer('hello'), function (err) {
+  file.write(10, toBuffer('hello'), function (err) {
     t.error(err, 'no error')
     var file2 = raf(name, {truncate: true})
     file2.read(10, 5, function (err, buf) {
@@ -108,11 +110,11 @@ tape('mkdir path', function (t) {
   var name = path.join(tmp, ++i + '-folder', 'test.txt')
   var file = raf(name)
 
-  file.write(0, Buffer('hello'), function (err) {
+  file.write(0, toBuffer('hello'), function (err) {
     t.error(err, 'no error')
     file.read(0, 5, function (err, buf) {
       t.error(err, 'no error')
-      t.same(buf, Buffer('hello'))
+      t.same(buf, toBuffer('hello'))
       t.end()
       file.unlink()
       file.close()

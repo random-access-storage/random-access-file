@@ -7,14 +7,16 @@
     "test": "standard && tape test.js"
   },
   "dependencies": {
+    "buffer-alloc-unsafe": "^1.0.0",
     "debug": "^2.5.2",
     "inherits": "^2.0.1",
     "mkdirp": "^0.5.1",
     "thunky": "^1.0.1"
   },
   "devDependencies": {
-    "standard": "*",
-    "tape": "^4.5.1"
+    "standard": "^10.0.1",
+    "tape": "^4.5.1",
+    "to-buffer": "^1.1.0"
   },
   "repository": {
     "type": "git",

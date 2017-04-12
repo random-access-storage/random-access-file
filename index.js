@@ -4,6 +4,7 @@ var path = require('path')
 var inherits = require('inherits')
 var mkdirp = require('mkdirp')
 var events = require('events')
+var alloc = require('buffer-alloc-unsafe')
 var c = require('constants')
 var debug = require('debug')('random-access-file')
 
@@ -88,7 +89,7 @@ RandomAccessFile.prototype.read = function (offset, length, cb) {
   if (!this.readable) return cb(new Error('File is not readable'))
 
   var self = this
-  var buf = Buffer(length)
+  var buf = alloc(length)
 
   if (!length) return cb(null, buf)
   fs.read(this.fd, buf, 0, length, offset, onread)
@@ -152,7 +153,7 @@ RandomAccessFile.prototype.del = function (offset, length, cb) {
   if (!cb) cb = noop
   if (!this.opened) return openAndDel(this, offset, length, cb)
   if (offset + length < this.length) return cb(null)
-  fs.ftruncate(this.fd, offset + length, cb)
+  fs.ftruncate(this.fd, offset, cb)
 }
 
 RandomAccessFile.prototype.close = function (cb) {
