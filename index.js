@@ -213,6 +213,14 @@ RandomAccessFile.prototype.end = function (opts, cb) {
   }
 }
 
+RandomAccessFile.prototype.destroy = function (cb) {
+  var self = this
+
+  this.close(function () {
+    self.unlink(cb)
+  })
+}
+
 RandomAccessFile.prototype.unlink = function (cb) {
   if (!cb) cb = noop
   debug('unlink() file=%s', this.filename)
