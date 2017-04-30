@@ -21,6 +21,7 @@ function RandomAccessFile (filename, opts) {
 
   this.filename = filename
   this.fd = 0
+  this.queued = 0
   this.readable = opts.readable !== false
   this.writable = opts.writable !== false
   this.mtime = opts.mtime
@@ -81,47 +82,78 @@ function RandomAccessFile (filename, opts) {
 inherits(RandomAccessFile, events.EventEmitter)
 
 RandomAccessFile.prototype.read = function (offset, length, cb) {
+  this.queued++
   if (!this.opened) return openAndRead(this, offset, length, cb)
+  this._read(offset, length, cb)
+}
+
+RandomAccessFile.prototype._read = function (offset, length, cb) {
   if (!this.fd) {
     debug('read() failed: fd is closed file=%s', this.filename)
-    return cb(new Error('File is closed'))
+    return onread(new Error('File is closed'), 0)
   }
-  if (!this.readable) return cb(new Error('File is not readable'))
+
+  if (!this.readable) {
+    return onread(new Error('File is not readable'), 0)
+  }
 
   var self = this
   var buf = alloc(length)
 
-  if (!length) return cb(null, buf)
+  if (!length) {
+    this.queued--
+    return cb(null, buf)
+  }
+
   fs.read(this.fd, buf, 0, length, offset, onread)
 
   function onread (err, bytes) {
     if (err) {
       debug('read() failed file=%s err=%s', self.filename, err)
+      self.queued--
       return cb(err)
     }
-    if (!bytes) return cb(new Error('Could not satisfy length'))
+
+    if (!bytes) {
+      self.queued--
+      return cb(new Error('Could not satisfy length'))
+    }
 
     offset += bytes
     length -= bytes
 
-    if (!length) return cb(null, buf)
+    if (!length) {
+      self.queued--
+      return cb(null, buf)
+    }
+
     if (!self.fd) {
       debug('read() failed: fd is closed file=%s', self.filename)
+      self.queued--
       return cb(new Error('File is closed'))
     }
+
     fs.read(self.fd, buf, buf.length - length, length, offset, onread)
   }
 }
 
 RandomAccessFile.prototype.write = function (offset, buf, cb) {
+  this.queued++
   if (!cb) cb = noop
   if (!this.opened) return openAndWrite(this, offset, buf, cb)
+  this._write(offset, buf, cb)
+}
+
+RandomAccessFile.prototype._write = function (offset, buf, cb) {
   if (!this.fd) {
     debug('write() failed: fd is closed file=%s', this.filename)
+    this.queued--
     return cb(new Error('File is closed'))
   }
+
   if (!this.writable) {
     debug('write() failed: fd is not writable file=%s', this.filename)
+    this.queued--
     return cb(new Error('File is not writable'))
   }
 
@@ -133,6 +165,7 @@ RandomAccessFile.prototype.write = function (offset, buf, cb) {
   function onwrite (err, bytes) {
     if (err) {
       debug('write() failed file=%s err=%s', self.filename, err)
+      self.queued--
       return cb(err)
     }
 
@@ -140,9 +173,14 @@ RandomAccessFile.prototype.write = function (offset, buf, cb) {
     length -= bytes
     if (offset > self.length) self.length = offset
 
-    if (!length) return cb(null)
+    if (!length) {
+      self.queued--
+      return cb(null)
+    }
+
     if (!self.fd) {
       debug('write() failed: fd is closed file=%s', self.filename)
+      self.queued--
       return cb(new Error('File is closed'))
     }
     fs.write(self.fd, buf, buf.length - offset, length, offset, onwrite)
@@ -166,6 +204,10 @@ RandomAccessFile.prototype.close = function (cb) {
 
   function onopen (err) {
     if (err) return cb()
+    if (self.queued) {
+      setTimeout(onopen, 500)
+      return
+    }
     fs.close(self.fd, onclose)
   }
 
@@ -239,14 +281,14 @@ function openAndDel (self, offset, length, cb) {
 function openAndRead (self, offset, length, cb) {
   self.open(function (err) {
     if (err) return cb(err)
-    self.read(offset, length, cb)
+    self._read(offset, length, cb)
   })
 }
 
 function openAndWrite (self, offset, buf, cb) {
   self.open(function (err) {
     if (err) return cb(err)
-    self.write(offset, buf, cb)
+    self._write(offset, buf, cb)
   })
 }
 
