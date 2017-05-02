@@ -88,6 +88,8 @@ RandomAccessFile.prototype.read = function (offset, length, cb) {
 }
 
 RandomAccessFile.prototype._read = function (offset, length, cb) {
+  var self = this
+
   if (!this.fd) {
     debug('read() failed: fd is closed file=%s', this.filename)
     return onread(new Error('File is closed'), 0)
@@ -97,7 +99,6 @@ RandomAccessFile.prototype._read = function (offset, length, cb) {
     return onread(new Error('File is not readable'), 0)
   }
 
-  var self = this
   var buf = alloc(length)
 
   if (!length) {
