@@ -184,7 +184,7 @@ RandomAccessFile.prototype._write = function (offset, buf, cb) {
       self.queued--
       return cb(new Error('File is closed'))
     }
-    fs.write(self.fd, buf, buf.length - offset, length, offset, onwrite)
+    fs.write(self.fd, buf, buf.length - length, length, offset, onwrite)
   }
 }
 
