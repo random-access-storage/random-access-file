@@ -19,6 +19,7 @@ function RandomAccessFile (filename, opts) {
 
   var self = this
 
+  this.directory = opts.directory
   this.filename = filename
   this.fd = 0
   this.queued = 0
@@ -28,6 +29,7 @@ function RandomAccessFile (filename, opts) {
   this.atime = opts.atime
   this.length = opts.length || 0
   this.opened = false
+  this.rmdir = !!opts.rmdir
   this.open = thunky(open)
   this.open()
 
@@ -257,10 +259,33 @@ RandomAccessFile.prototype.end = function (opts, cb) {
 }
 
 RandomAccessFile.prototype.destroy = function (cb) {
+  if (!cb) cb = noop
   var self = this
 
   this.close(function () {
-    self.unlink(cb)
+    self.unlink(function (err) {
+      if (err) return cb(err)
+      if (!self.directory || !self.rmdir) return cb()
+
+      var root = path.join(self.directory, '.')
+      var dir = path.dirname(self.filename)
+
+      loop()
+
+      function loop () {
+        if (dir.indexOf(root) !== 0) return cb()
+        if (dir === root) return cb()
+
+        fs.readdir(dir, function (_, names) {
+          if (names && names.length) return cb()
+
+          fs.rmdir(dir, function () {
+            dir = path.join(dir, '..')
+            loop()
+          })
+        })
+      }
+    })
   })
 }
 
