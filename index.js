@@ -267,8 +267,8 @@ RandomAccessFile.prototype.destroy = function (cb) {
       if (err) return cb(err)
       if (!self.directory || !self.rmdir) return cb()
 
-      var root = path.join(self.directory, '.')
-      var dir = path.dirname(self.filename)
+      var root = path.resolve(path.join(self.directory, '.'))
+      var dir = path.resolve(path.dirname(self.filename))
 
       loop()
 
