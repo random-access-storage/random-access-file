@@ -21,7 +21,7 @@ var randomAccessFile = require('random-access-file')
 
 var file = randomAccessFile('my-file.txt')
 
-file.write(10, new Buffer('hello'), function(err) {
+file.write(10, Buffer.from('hello'), function(err) {
   // write a buffer to offset 10
   file.read(10, 5, function(err, buffer) {
     console.log(buffer) // read 5 bytes from offset 10
@@ -62,22 +62,11 @@ Read a buffer at a specific offset. Callback is called with the buffer read.
 Will truncate the file if offset + length is larger than the current file length.
 Is otherwise a noop.
 
-#### `file.end([options], callback)`
-
-Call this method when the entire file has been written. Options include:
-
-``` js
-{
-  mtime: mtime, // set the file's mtime
-  atime: atime // set the file's atime
-}
-```
-
 #### `file.close([callback])`
 
 Close the underlying file descriptor.
 
-#### `file.unlink([callback])`
+#### `file.destroy([callback])`
 
 Unlink the underlying file.
 
