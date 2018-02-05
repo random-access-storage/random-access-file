@@ -67,11 +67,12 @@ RandomAccessFile.prototype._read = function (req) {
   var data = req.data || Buffer.allocUnsafe(req.size)
   var fd = this.fd
 
+  if (!req.size) return process.nextTick(readEmpty, req)
   fs.read(fd, data, 0, req.size, req.offset, onread)
 
   function onread (err, read) {
     if (err) return req.callback(err)
-    if (!read && req.size) return req.callback(new Error('Could not satisfy length'))
+    if (!read) return req.callback(new Error('Could not satisfy length'))
 
     req.size -= read
     req.offset += read
@@ -150,4 +151,8 @@ function open (self, mode, req) {
   function ontruncate (err) {
     req.callback(err)
   }
+}
+
+function readEmpty (req) {
+  req.callback(null, Buffer.alloc(0))
 }
