@@ -6,7 +6,7 @@ Continuous reading or writing to a file using random offsets and lengths
 npm install random-access-file
 ```
 
-[![build status](http://img.shields.io/travis/mafintosh/random-access-file.svg?style=flat)](http://travis-ci.org/mafintosh/random-access-file)
+[![build status](https://travis-ci.org/random-access-storage/random-access-file.svg?branch=master)](https://travis-ci.org/random-access-storage/random-access-file)
 
 ## Why?
 
