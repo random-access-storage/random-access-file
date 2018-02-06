@@ -3,15 +3,12 @@ var tape = require('tape')
 var os = require('os')
 var path = require('path')
 var fs = require('fs')
+var mkdirp = require('mkdirp')
 
 var tmp = path.join(os.tmpdir(), 'random-access-file-' + process.pid + '-' + Date.now())
 var i = 0
 
-try {
-  fs.mkdirSync(tmp)
-} catch (err) {
-  // ...
-}
+mkdirp.sync(tmp)
 
 tape('write and read', function (t) {
   var file = raf(gen())
@@ -112,6 +109,57 @@ tape('mkdir path', function (t) {
     })
   })
 })
+
+tape('rmdir option', function (t) {
+  var name = path.join('rmdir', ++i + '', 'folder', 'test.txt')
+  var file = raf(name, {rmdir: true, directory: tmp})
+  
+  file.write(0, Buffer.from('hi'), function (err) {
+    t.error(err, 'no error')
+    file.read(0, 2, function (err, buf) {
+      t.error(err, 'no error')
+      t.same(buf, Buffer.from('hi'))
+      file.destroy(ondestroy)
+    })
+  })
+
+  function ondestroy (err) {
+    t.error(err, 'no error')
+    fs.stat(path.join(tmp, 'rmdir'), function (err) {
+      t.same(err && err.code, 'ENOENT', 'should be removed')
+      t.end()
+    })
+  }
+})
+
+tape('rmdir option with non empty parent', function (t) {
+  var name = path.join('rmdir', ++i + '', 'folder', 'test.txt')
+  var nonEmpty = path.join(tmp, name, '../..')
+  var file = raf(name, {rmdir: true, directory: tmp})
+  
+  file.write(0, Buffer.from('hi'), function (err) {
+    t.error(err, 'no error')
+    fs.writeFileSync(path.join(nonEmpty, 'thing'), '')
+    file.read(0, 2, function (err, buf) {
+      t.error(err, 'no error')
+      t.same(buf, Buffer.from('hi'))
+      file.destroy(ondestroy)
+    })
+  })
+
+  function ondestroy (err) {
+    t.error(err, 'no error')
+    fs.stat(path.join(tmp, 'rmdir'), function (err) {
+      t.error(err, 'should not be removed')
+      fs.readdir(nonEmpty, function (err, list) {
+        t.error(err, 'no error')
+        t.same(list, ['thing'], 'should only be one entry')
+        t.end()
+      })
+    })
+  }
+})
+
 
 function gen () {
   return path.join(tmp, ++i + '.txt')
