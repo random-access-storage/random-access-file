@@ -42,6 +42,18 @@ tape('read range > file', function (t) {
   })
 })
 
+tape('read range > file with data', function (t) {
+  var file = raf(gen())
+
+  file.write(0, Buffer.from('hello'), function (err) {
+    t.error(err, 'no error')
+    file.read(0, 10, function (err, buf) {
+      t.ok(err, 'not satisfiable')
+      file.destroy(() => t.end())
+    })
+  })
+})
+
 tape('random access write and read', function (t) {
   var file = raf(gen())
 
@@ -95,6 +107,34 @@ tape('re-open and truncate', function (t) {
   })
 })
 
+tape('truncate with size', function (t) {
+  var file = raf(gen(), {size: 100, writable: true})
+
+  file.stat(function (err, st) {
+    t.error(err, 'no error')
+    t.same(st.size, 100)
+    file.destroy(() => t.end())
+  })
+})
+
+tape('bad open', function (t) {
+  var file = raf(tmp, {writable: true})
+
+  file.open(function (err) {
+    t.ok(err)
+    file.close(() => t.end())
+  })
+})
+
+tape('bad truncate', function (t) {
+  var file = raf(gen(), {writable: true, size: -1, truncate: true})
+
+  file.open(function (err) {
+    t.ok(err)
+    file.destroy(() => t.end())
+  })
+})
+
 tape('mkdir path', function (t) {
   var name = path.join(tmp, ++i + '-folder', 'test.txt')
   var file = raf(name)
@@ -110,10 +150,39 @@ tape('mkdir path', function (t) {
   })
 })
 
+tape('write/read big chunks', function (t) {
+  var file = raf(gen())
+  var bigBuffer = Buffer.alloc(10 * 1024 * 1024)
+  var missing = 2
+
+  bigBuffer.fill('hey. hey. how are you doing?. i am good thanks how about you? i am good')
+
+  file.write(0, bigBuffer, function (err) {
+    t.error(err, 'no error')
+    file.read(0, bigBuffer.length, function (err, buf) {
+      t.error(err, 'no error')
+      t.same(buf, bigBuffer)
+      done()
+    })
+  })
+  file.write(bigBuffer.length * 2, bigBuffer, function (err) {
+    t.error(err, 'no error')
+    file.read(bigBuffer.length * 2, bigBuffer.length, function (err, buf) {
+      t.error(err, 'no error')
+      t.same(buf, bigBuffer)
+      done()
+    })
+  })
+
+  function done () {
+    if (!--missing) file.destroy(() => t.end())
+  }
+})
+
 tape('rmdir option', function (t) {
   var name = path.join('rmdir', ++i + '', 'folder', 'test.txt')
   var file = raf(name, {rmdir: true, directory: tmp})
-  
+
   file.write(0, Buffer.from('hi'), function (err) {
     t.error(err, 'no error')
     file.read(0, 2, function (err, buf) {
@@ -136,7 +205,7 @@ tape('rmdir option with non empty parent', function (t) {
   var name = path.join('rmdir', ++i + '', 'folder', 'test.txt')
   var nonEmpty = path.join(tmp, name, '../..')
   var file = raf(name, {rmdir: true, directory: tmp})
-  
+
   file.write(0, Buffer.from('hi'), function (err) {
     t.error(err, 'no error')
     fs.writeFileSync(path.join(nonEmpty, 'thing'), '')
@@ -160,6 +229,78 @@ tape('rmdir option with non empty parent', function (t) {
   }
 })
 
+tape('del', function (t) {
+  var file = raf(gen())
+
+  file.write(0, Buffer.alloc(100), function (err) {
+    t.error(err, 'no error')
+    file.stat(function (err, st) {
+      t.error(err, 'no error')
+      t.same(st.size, 100)
+      file.del(0, 40, function (err) {
+        t.error(err, 'no error')
+        file.stat(function (err, st) {
+          t.error(err, 'no error')
+          t.same(st.size, 100, 'inplace del, same size')
+          file.del(50, 50, function (err) {
+            t.error(err, 'no error')
+            file.stat(function (err, st) {
+              t.error(err, 'no error')
+              t.same(st.size, 50)
+              file.destroy(() => t.end())
+            })
+          })
+        })
+      })
+    })
+  })
+})
+
+tape('open and close many times', function (t) {
+  var name = gen()
+  var file = raf(name)
+  var buf = Buffer.alloc(4)
+
+  file.write(0, buf, function (err) {
+    t.error(err, 'no error')
+    loop(5000, function (err) {
+      t.error(err, 'no error')
+      file.destroy(() => t.end())
+    })
+  })
+
+  function loop (n, cb) {
+    var file = raf(name)
+    file.read(0, 4, function (err, buffer) {
+      if (err) return cb(err)
+      if (!buf.equals(buffer)) {
+        t.same(buffer, buf)
+        return cb()
+      }
+      buf.writeUInt32BE(n)
+      file.write(0, buf, function (err) {
+        if (err) return cb(err)
+        file.close(function (err) {
+          if (!n || err) return cb(err)
+          loop(n - 1, cb)
+        })
+      })
+    })
+  }
+})
+
+tape('trigger bad open', function (t) {
+  var file = raf(gen(), {writable: true})
+
+  file.fd = -1
+  file.open(function (err) {
+    t.ok(err, 'should error trying to close old fd')
+    file.open(function (err) {
+      t.error(err, 'no error')
+      file.destroy(() => t.end())
+    })
+  })
+})
 
 function gen () {
   return path.join(tmp, ++i + '.txt')

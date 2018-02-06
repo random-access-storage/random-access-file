@@ -24,8 +24,8 @@ function RandomAccessFile (filename, opts) {
   // makes random-access-storage open in writable mode first
   if (opts.writable || opts.truncate) this.preferReadonly = false
 
-  this._truncate = !!opts.truncate
-  this._length = opts.length || 0
+  this._length = opts.size || opts.length || 0
+  this._truncate = !!opts.truncate || this._length > 0
   this._rmdir = !!opts.rmdir
 }
 
@@ -143,13 +143,31 @@ function open (self, mode, req) {
 
   function onopen (err, fd) {
     if (err) return req.callback(err)
+
+    var old = self.fd
     self.fd = fd
+    if (!old) return oncloseoldfd(null)
+
+    // if we are moving from readonly -> readwrite, close the old fd
+    fs.close(old, oncloseoldfd)
+  }
+
+  function oncloseoldfd (err) {
+    if (err) return onerrorafteropen(err)
     if (!self._truncate || mode === READONLY) return req.callback(null)
-    fs.ftruncate(fd, self._length, ontruncate)
+    fs.ftruncate(self.fd, self._length, ontruncate)
   }
 
   function ontruncate (err) {
-    req.callback(err)
+    if (err) return onerrorafteropen(err)
+    req.callback(null)
+  }
+
+  function onerrorafteropen (err) {
+    fs.close(self.fd, function () {
+      self.fd = 0
+      req.callback(err)
+    })
   }
 }
 
