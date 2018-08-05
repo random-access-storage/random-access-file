@@ -1,3 +1,5 @@
 module.exports = function () {
-  throw new Error('random-access-file is not supported in the browser')
+  if (!(window && window.process && window.process.type)) {
+    throw new Error('random-access-file is not supported in the browser')
+  }
 }
