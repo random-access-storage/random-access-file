@@ -126,15 +126,6 @@ tape('bad open', function (t) {
   })
 })
 
-tape('bad truncate', function (t) {
-  var file = raf(gen(), {writable: true, size: -1, truncate: true})
-
-  file.open(function (err) {
-    t.ok(err)
-    file.destroy(() => t.end())
-  })
-})
-
 tape('mkdir path', function (t) {
   var name = path.join(tmp, ++i + '-folder', 'test.txt')
   var file = raf(name)
@@ -292,7 +283,7 @@ tape('open and close many times', function (t) {
 tape('trigger bad open', function (t) {
   var file = raf(gen(), {writable: true})
 
-  file.fd = -1
+  file.fd = 10000
   file.open(function (err) {
     t.ok(err, 'should error trying to close old fd')
     file.open(function (err) {
