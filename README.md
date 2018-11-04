@@ -62,6 +62,16 @@ Read a buffer at a specific offset. Callback is called with the buffer read.
 Will truncate the file if offset + length is larger than the current file length.
 Is otherwise a noop.
 
+#### `file.stat(callback)`
+
+Stat the storage. Should return an object with useful information about the underlying storage, including:
+
+```js
+{
+  size: number // how many bytes of data is stored?
+}
+```
+
 #### `file.close([callback])`
 
 Close the underlying file descriptor.
