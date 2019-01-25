@@ -1,15 +1,22 @@
-var raf = require('./')
-var alloc = require('buffer-alloc-unsafe')
+var raf = require('random-access-file')
+var file = raf('hello.txt')
 
-var file = raf('hello.txt', {length: 0})
-
-var buf = alloc(1024)
+var max = 500 * 1024 * 1024
+var buf = Buffer.alloc(1024)
 buf.fill('lo')
+
+var offset = 0
 write()
 
 function write () {
-  if (file.length >= 5 * 1024 * 1024) return done()
-  file.write(file.length, buf, write)
+  file.write(offset, buf, afterWrite)
+}
+
+function afterWrite (err) {
+  if (err) throw err
+  if (offset >= max) return done()
+  offset += buf.length
+  write()
 }
 
 function done () {

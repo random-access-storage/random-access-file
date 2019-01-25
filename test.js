@@ -293,6 +293,19 @@ tape('trigger bad open', function (t) {
   })
 })
 
+tape('trigger lock', function (t) {
+  var p = gen()
+  var file = raf(p, {writable: true, lock: () => false})
+
+  file.open(function (err) {
+    t.ok(err, 'should error because it is locked')
+    t.same(err.message, 'ELOCKED: File is locked')
+    t.same(err.path, p)
+    t.same(err.code, 'ELOCKED')
+    t.end()
+  })
+})
+
 function gen () {
   return path.join(tmp, ++i + '.txt')
 }

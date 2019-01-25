@@ -45,7 +45,8 @@ Create a new file. Options include:
   truncate: false, // truncate the file before reading / writing
   size: someSize, // truncate the file to this size first
   readable: true, // should the file be opened as readable?
-  writable: true  // should the file be opened as writable?
+  writable: true,  // should the file be opened as writable?
+  lock (fd) => bool // optional function that informs if the file could be locked
 }
 ```
 

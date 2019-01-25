@@ -27,6 +27,7 @@ function RandomAccessFile (filename, opts) {
   this._size = opts.size || opts.length || 0
   this._truncate = !!opts.truncate || this._size > 0
   this._rmdir = !!opts.rmdir
+  this._lock = opts.lock || noLock
 }
 
 inherits(RandomAccessFile, RandomAccess)
@@ -154,6 +155,7 @@ function open (self, mode, req) {
 
   function oncloseoldfd (err) {
     if (err) return onerrorafteropen(err)
+    if (!self._lock(self.fd)) return req.callback(createLockError(self.filename))
     if (!self._truncate || mode === READONLY) return req.callback(null)
     fs.ftruncate(self.fd, self._size, ontruncate)
   }
@@ -173,4 +175,15 @@ function open (self, mode, req) {
 
 function readEmpty (req) {
   req.callback(null, Buffer.alloc(0))
+}
+
+function noLock (fd) {
+  return true
+}
+
+function createLockError (path) {
+  var err = new Error('ELOCKED: File is locked')
+  err.code = 'ELOCKED'
+  err.path = path
+  return err
 }
