@@ -15,7 +15,7 @@ function RandomAccessFile (filename, opts) {
   RandomAccess.call(this)
 
   if (!opts) opts = {}
-  if (opts.directory) filename = path.join(opts.directory, filename)
+  if (opts.directory) filename = path.join(opts.directory, path.resolve('/', filename))
 
   this.directory = opts.directory || null
   this.filename = filename

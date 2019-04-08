@@ -306,6 +306,17 @@ tape('trigger lock', function (t) {
   })
 })
 
+tape('cannot escape directory', function (t) {
+  var name = '../../../../../../../../../../../../../tmp'
+  var file = raf(name, {writable: true, directory: tmp})
+
+  file.open(function (err) {
+    t.error(err, 'no error')
+    t.same(file.filename, path.join(tmp, 'tmp'))
+    t.end()
+  })
+})
+
 function gen () {
   return path.join(tmp, ++i + '.txt')
 }
