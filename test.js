@@ -317,6 +317,13 @@ tape('cannot escape directory', function (t) {
   })
 })
 
+tape('directory filename resolves correctly', function (t) {
+  var name = gen()
+  var file = raf(name, {writable: true, directory: tmp})
+  t.same(file.filename, path.join(tmp, name))
+  t.end()
+})
+
 function gen () {
   return path.join(tmp, ++i + '.txt')
 }
