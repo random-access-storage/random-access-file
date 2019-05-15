@@ -3,6 +3,7 @@ var RandomAccess = require('random-access-storage')
 var fs = require('fs')
 var mkdirp = require('mkdirp')
 var path = require('path')
+var unixify = require('unixify')
 var constants = fs.constants || require('constants')
 
 var READONLY = constants.O_RDONLY
@@ -15,7 +16,7 @@ function RandomAccessFile (filename, opts) {
   RandomAccess.call(this)
 
   if (!opts) opts = {}
-  if (opts.directory) filename = path.join(opts.directory, path.resolve('/', filename))
+  if (opts.directory) filename = path.join(opts.directory, unixify(path.resolve('/', filename)))
 
   this.directory = opts.directory || null
   this.filename = filename
