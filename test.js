@@ -4,6 +4,7 @@ var os = require('os')
 var path = require('path')
 var fs = require('fs')
 var mkdirp = require('mkdirp')
+var isWin = process.platform === 'win32'
 
 var tmp = path.join(os.tmpdir(), 'random-access-file-' + process.pid + '-' + Date.now())
 var i = 0
@@ -118,6 +119,8 @@ tape('truncate with size', function (t) {
 })
 
 tape('bad open', function (t) {
+  if (isWin) return t.end() // windows apparently allow you to open dirs :/
+
   var file = raf(tmp, {writable: true})
 
   file.open(function (err) {
