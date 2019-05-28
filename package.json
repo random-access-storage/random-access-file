@@ -1,12 +1,11 @@
 {
   "name": "random-access-file",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "description": "Continuous reading or writing to a file using random offsets and lengths",
   "main": "index.js",
   "scripts": {
     "test": "standard && tape test.js"
   },
-  "browser": "./browser.js",
   "dependencies": {
     "mkdirp": "^0.5.1",
     "random-access-storage": "^1.1.1"
