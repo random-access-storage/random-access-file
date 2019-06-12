@@ -140,24 +140,21 @@ RandomAccessFile.prototype._destroy = function (req) {
 }
 
 function open (self, mode, req) {
-  fs.open(self.filename, mode, onopen)
+  if (self.fd) fs.close(self.fd, oncloseold)
+  else fs.open(self.filename, mode, onopen)
 
   function onopen (err, fd) {
     if (err) return req.callback(err)
-
-    var old = self.fd
     self.fd = fd
-    if (!old) return oncloseoldfd(null)
-
-    // if we are moving from readonly -> readwrite, close the old fd
-    fs.close(old, oncloseoldfd)
-  }
-
-  function oncloseoldfd (err) {
-    if (err) return onerrorafteropen(err)
-    if (!self._lock(self.fd)) return req.callback(createLockError(self.filename))
+    if (!self._lock(self.fd)) return req.callback(createLockError(self.filename)) // TODO: fix fd leak here
     if (!self._truncate || mode === READONLY) return req.callback(null)
     fs.ftruncate(self.fd, self._size, ontruncate)
+  }
+
+  function oncloseold (err) {
+    if (err) return onerrorafteropen(err)
+    self.fd = 0
+    fs.open(self.filename, mode, onopen)
   }
 
   function ontruncate (err) {
