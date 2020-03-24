@@ -1,7 +1,7 @@
 var inherits = require('util').inherits
 var RandomAccess = require('random-access-storage')
 var fs = require('fs')
-var mkdirp = require('mkdirp')
+var mkdirp = require('mkdirp-classic')
 var path = require('path')
 var constants = fs.constants || require('constants')
 
