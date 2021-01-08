@@ -4,6 +4,7 @@ var os = require('os')
 var path = require('path')
 var fs = require('fs')
 var mkdirp = require('mkdirp')
+var fswin = require('fswin')
 var isWin = process.platform === 'win32'
 
 var tmp = path.join(os.tmpdir(), 'random-access-file-' + process.pid + '-' + Date.now())
@@ -327,6 +328,66 @@ tape('directory filename resolves correctly', function (t) {
   t.end()
 })
 
+tape('sparse functionality on windows', function (t) {
+  if (fswin) {
+    t.comment('fswin defined, environment either Windows or Electron')
+    var sparseFile = gen()
+    var regularFile = gen()
+
+    create10MBFileWithRAF(t, sparseFile, function () {
+      create10MBFileWithNode(t, regularFile, function () {
+        fs.stat(sparseFile, function (err, sparseStat) {
+          t.error(err, 'no error')
+          fs.stat(regularFile, function (errr, regularStat) {
+            t.error(errr, 'no error')
+            t.equal(sparseStat.size, regularStat.size, 'same apparent size')
+            t.equal(sparseStat.blksize, regularStat.blksize, 'block size sanity check')
+            t.comment('sparse blks: ' + sparseStat.blocks +
+                     ' regular blks: ' + regularStat.blocks)
+            t.ok(sparseStat.blocks < regularStat.blocks, 'sparse file should use far less blocks')
+            raf(sparseFile).destroy(() => {
+              raf(regularFile).destroy(() => t.end())
+            })
+          })
+        })
+      })
+    })
+  } else {
+    t.comment('skipping sparse test, not on Windows')
+    t.end()
+  }
+})
+
 function gen () {
   return path.join(tmp, ++i + '.txt')
+}
+
+function create10MBFileWithRAF (t, filename, cb) {
+  var file = raf(filename)
+  file.write(0, Buffer.from([1]), function (err) {
+    t.error(err, 'no error')
+    file.write(10000000, Buffer.from([1]), function (errr) {
+      t.error(errr, 'no error')
+      file.close(function (errrr) {
+        t.error(errrr, 'no error')
+        cb()
+      })
+    })
+  })
+}
+
+function create10MBFileWithNode (t, filename, cb) {
+  fs.open(filename, 'w', function (err, fd) {
+    t.error(err, 'no error')
+    fs.write(fd, Buffer.from([1]), 0, 1, 0, function (errr) {
+      t.error(errr, 'no error')
+      fs.write(fd, Buffer.from([1]), 0, 1, 10000000, function (errrr) {
+        t.error(errrr, 'no error')
+        fs.close(fd, function (errrrr) {
+          t.error(errrrr, 'no error')
+          cb()
+        })
+      })
+    })
+  })
 }
