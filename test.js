@@ -336,24 +336,17 @@ tape('sparse functionality on windows', function (t) {
 
     create10MBFileWithRAF(t, sparseFile, function () {
       create10MBFileWithNode(t, regularFile, function () {
-        fs.stat(sparseFile, function (err, sparseStat) {
-          t.error(err, 'no error')
-          fs.stat(regularFile, function (errr, regularStat) {
-            t.error(errr, 'no error')
-            t.equal(sparseStat.size, regularStat.size, 'same apparent size')
-            t.equal(sparseStat.blksize, regularStat.blksize, 'block size sanity check')
-            t.comment('sparse blks: ' + sparseStat.blocks +
-                     ' regular blks: ' + regularStat.blocks)
-            if (sparseStat.blocks === undefined || regularStat.blocks === undefined) {
-              // https://github.com/nodejs/node/pull/26056
-              t.comment('can\'t make file comparisions in this node version')
-            } else {
-              t.ok(sparseStat.blocks < regularStat.blocks / 2, 'sparse file should use far less blocks')
-            }
-            raf(sparseFile).destroy(() => {
-              raf(regularFile).destroy(() => t.end())
-            })
-          })
+        var sparseStats = fswin.getAttributesSync(sparseFile)
+        t.same(sparseStats.IS_SPARSE_FILE, true, 'File should be marked as sparse')
+        var regularStats = fswin.getAttributesSync(regularFile)
+        t.same(regularStats.IS_SPARSE_FILE, false, 'sanity check that normal files are not sparse')
+        var sparseSize = fswin.ntfs.getCompressedSizeSync(sparseFile)
+        var regularSize = fswin.ntfs.getCompressedSizeSync(regularFile)
+        t.comment('sparse size: ' + sparseSize +
+                 ' regular size: ' + regularSize)
+        t.ok(sparseSize < regularSize / 2, 'sparse file should use far less blocks')
+        raf(sparseFile).destroy(() => {
+          raf(regularFile).destroy(() => t.end())
         })
       })
     })
