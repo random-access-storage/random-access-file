@@ -344,7 +344,12 @@ tape('sparse functionality on windows', function (t) {
             t.equal(sparseStat.blksize, regularStat.blksize, 'block size sanity check')
             t.comment('sparse blks: ' + sparseStat.blocks +
                      ' regular blks: ' + regularStat.blocks)
-            t.ok(sparseStat.blocks < regularStat.blocks, 'sparse file should use far less blocks')
+            if (sparseStat.blocks === undefined || regularStat.blocks === undefined) {
+              // https://github.com/nodejs/node/pull/26056
+              t.comment('can\'t make file comparisions in this node version')
+            } else {
+              t.ok(sparseStat.blocks < regularStat.blocks / 2, 'sparse file should use far less blocks')
+            }
             raf(sparseFile).destroy(() => {
               raf(regularFile).destroy(() => t.end())
             })
