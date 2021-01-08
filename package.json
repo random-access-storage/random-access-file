@@ -8,6 +8,7 @@
   },
   "browser": "./browser.js",
   "dependencies": {
+    "fswin": "^3.21.107",
     "mkdirp-classic": "^0.5.2",
     "random-access-storage": "^1.1.1"
   },

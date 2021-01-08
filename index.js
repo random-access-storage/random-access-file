@@ -4,6 +4,7 @@ var fs = require('fs')
 var mkdirp = require('mkdirp-classic')
 var path = require('path')
 var constants = fs.constants || require('constants')
+var fswin = require('fswin')
 
 var READONLY = constants.O_RDONLY
 var READWRITE = constants.O_RDWR | constants.O_CREAT
@@ -39,6 +40,10 @@ RandomAccessFile.prototype._open = function (req) {
 
   function ondir (err) {
     if (err) return req.callback(err)
+    // on Windows, set the file as sparse
+    if (fswin) {
+      fswin.ntfs.setSparseSync(self.filename, true)
+    }
     open(self, READWRITE, req)
   }
 }
