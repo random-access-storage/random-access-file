@@ -1,6 +1,6 @@
 {
   "name": "random-access-file",
-  "version": "2.1.4",
+  "version": "2.1.5",
   "description": "Continuous reading or writing to a file using random offsets and lengths",
   "main": "index.js",
   "scripts": {
