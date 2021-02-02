@@ -28,6 +28,7 @@ function RandomAccessFile (filename, opts) {
   this._truncate = !!opts.truncate || this._size > 0
   this._rmdir = !!opts.rmdir
   this._lock = opts.lock || noLock
+  this._alloc = opts.alloc || Buffer.allocUnsafe
 }
 
 inherits(RandomAccessFile, RandomAccess)
@@ -65,7 +66,7 @@ RandomAccessFile.prototype._write = function (req) {
 }
 
 RandomAccessFile.prototype._read = function (req) {
-  var data = req.data || Buffer.allocUnsafe(req.size)
+  var data = req.data || this._alloc(req.size)
   var fd = this.fd
 
   if (!req.size) return process.nextTick(readEmpty, req)
