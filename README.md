@@ -46,7 +46,8 @@ Create a new file. Options include:
   size: someSize, // truncate the file to this size first
   readable: true, // should the file be opened as readable?
   writable: true,  // should the file be opened as writable?
-  lock (fd) => bool // optional function that informs if the file could be locked
+  lock (fd) => bool, // optional function that informs if the file could be locked
+  sparse (fd) => bool // options function that informs if the file should be set as sparse on win
 }
 ```
 

@@ -25,7 +25,7 @@ tape('write and read', function (t) {
 })
 
 tape('read empty', function (t) {
-  var file = raf(gen(), {writable: true})
+  var file = raf(gen(), { writable: true })
 
   file.read(0, 0, function (err, buf) {
     t.error(err, 'no error')
@@ -100,7 +100,7 @@ tape('re-open and truncate', function (t) {
 
   file.write(10, Buffer.from('hello'), function (err) {
     t.error(err, 'no error')
-    var file2 = raf(name, {truncate: true})
+    var file2 = raf(name, { truncate: true })
     file2.read(10, 5, function (err, buf) {
       t.ok(err, 'file should be truncated')
       t.end()
@@ -109,7 +109,7 @@ tape('re-open and truncate', function (t) {
 })
 
 tape('truncate with size', function (t) {
-  var file = raf(gen(), {size: 100, writable: true})
+  var file = raf(gen(), { size: 100, writable: true })
 
   file.stat(function (err, st) {
     t.error(err, 'no error')
@@ -121,7 +121,7 @@ tape('truncate with size', function (t) {
 tape('bad open', function (t) {
   if (isWin) return t.end() // windows apparently allow you to open dirs :/
 
-  var file = raf(tmp, {writable: true})
+  var file = raf(tmp, { writable: true })
 
   file.open(function (err) {
     t.ok(err)
@@ -175,7 +175,7 @@ tape('write/read big chunks', function (t) {
 
 tape('rmdir option', function (t) {
   var name = path.join('rmdir', ++i + '', 'folder', 'test.txt')
-  var file = raf(name, {rmdir: true, directory: tmp})
+  var file = raf(name, { rmdir: true, directory: tmp })
 
   file.write(0, Buffer.from('hi'), function (err) {
     t.error(err, 'no error')
@@ -198,7 +198,7 @@ tape('rmdir option', function (t) {
 tape('rmdir option with non empty parent', function (t) {
   var name = path.join('rmdir', ++i + '', 'folder', 'test.txt')
   var nonEmpty = path.join(tmp, name, '../..')
-  var file = raf(name, {rmdir: true, directory: tmp})
+  var file = raf(name, { rmdir: true, directory: tmp })
 
   file.write(0, Buffer.from('hi'), function (err) {
     t.error(err, 'no error')
@@ -284,7 +284,7 @@ tape('open and close many times', function (t) {
 })
 
 tape('trigger bad open', function (t) {
-  var file = raf(gen(), {writable: true})
+  var file = raf(gen(), { writable: true })
 
   file.fd = 10000
   file.open(function (err) {
@@ -298,7 +298,7 @@ tape('trigger bad open', function (t) {
 
 tape('trigger lock', function (t) {
   var p = gen()
-  var file = raf(p, {writable: true, lock: () => false})
+  var file = raf(p, { writable: true, lock: () => false })
 
   file.open(function (err) {
     t.ok(err, 'should error because it is locked')
@@ -311,7 +311,7 @@ tape('trigger lock', function (t) {
 
 tape('cannot escape directory', function (t) {
   var name = '../../../../../../../../../../../../../tmp'
-  var file = raf(name, {writable: true, directory: tmp})
+  var file = raf(name, { writable: true, directory: tmp })
 
   file.open(function (err) {
     t.error(err, 'no error')
@@ -322,7 +322,7 @@ tape('cannot escape directory', function (t) {
 
 tape('directory filename resolves correctly', function (t) {
   var name = 'test.txt'
-  var file = raf(name, {writable: true, directory: tmp})
+  var file = raf(name, { writable: true, directory: tmp })
   t.same(file.filename, path.join(tmp, name))
   t.end()
 })

@@ -3,7 +3,7 @@ var RandomAccess = require('random-access-storage')
 var fs = require('fs')
 var mkdirp = require('mkdirp-classic')
 var path = require('path')
-var constants = fs.constants || require('constants')
+var constants = fs.constants || require('constants') // eslint-disable-line
 
 var READONLY = constants.O_RDONLY
 var READWRITE = constants.O_RDWR | constants.O_CREAT
@@ -28,6 +28,7 @@ function RandomAccessFile (filename, opts) {
   this._truncate = !!opts.truncate || this._size > 0
   this._rmdir = !!opts.rmdir
   this._lock = opts.lock || noLock
+  this._sparse = opts.sparse || noLock
   this._alloc = opts.alloc || Buffer.allocUnsafe
 }
 
@@ -148,6 +149,7 @@ function open (self, mode, req) {
     if (err) return req.callback(err)
     self.fd = fd
     if (!self._lock(self.fd)) return req.callback(createLockError(self.filename)) // TODO: fix fd leak here
+    if (!self._sparse(self.fd)) return req.callback(createSparseError(self.filename))
     if (!self._truncate || mode === READONLY) return req.callback(null)
     fs.ftruncate(self.fd, self._size, ontruncate)
   }
@@ -177,6 +179,13 @@ function readEmpty (req) {
 
 function noLock (fd) {
   return true
+}
+
+function createSparseError (path) {
+  var err = new Error('ENOTSPARSE: File could not be marked as sparse')
+  err.code = 'ENOTSPARSE'
+  err.path = path
+  return err
 }
 
 function createLockError (path) {
