@@ -6,8 +6,6 @@ Continuous reading or writing to a file using random offsets and lengths
 npm install random-access-file
 ```
 
-[![build status](https://travis-ci.org/random-access-storage/random-access-file.svg?branch=master)](https://travis-ci.org/random-access-storage/random-access-file)
-
 ## Why?
 
 If you are receiving a file in multiple pieces in a distributed system it can be useful to write these pieces to disk one by one in various places throughout the file without having to open and close a file descriptor all the time.
