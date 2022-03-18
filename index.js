@@ -67,6 +67,7 @@ RandomAccessFile.prototype._write = function (req) {
 }
 
 RandomAccessFile.prototype._read = function (req) {
+  var self = this
   var data = req.data || this._alloc(req.size)
   var fd = this.fd
 
@@ -75,7 +76,7 @@ RandomAccessFile.prototype._read = function (req) {
 
   function onread (err, read) {
     if (err) return req.callback(err)
-    if (!read) return req.callback(new Error('Could not satisfy length'))
+    if (!read) return req.callback(createReadError(self.filename, req.offset, req.size))
 
     req.size -= read
     req.offset += read
@@ -192,5 +193,14 @@ function createLockError (path) {
   var err = new Error('ELOCKED: File is locked')
   err.code = 'ELOCKED'
   err.path = path
+  return err
+}
+
+function createReadError (path, offset, size) {
+  var err = new Error('Could not satisfy length')
+  err.code = 'EPARTIALREAD'
+  err.path = path
+  err.offset = offset
+  err.size = size
   return err
 }
