@@ -1,8 +1,8 @@
-const raf = require('./')
 const test = require('brittle')
 const os = require('os')
 const path = require('path')
 const fs = require('fs')
+const RAF = require('./')
 
 const tmp = path.join(os.tmpdir(), 'random-access-file-' + process.pid + '-' + Date.now())
 let i = 0
@@ -12,7 +12,7 @@ fs.mkdirSync(tmp, { recursive: true })
 test('write and read', function (t) {
   t.plan(4)
 
-  const file = raf(gen())
+  const file = new RAF(gen())
 
   file.write(0, Buffer.from('hello'), function (err) {
     t.absent(err, 'no error')
@@ -27,7 +27,7 @@ test('write and read', function (t) {
 test('read empty', function (t) {
   t.plan(3)
 
-  const file = raf(gen(), { writable: true })
+  const file = new RAF(gen(), { writable: true })
 
   file.read(0, 0, function (err, buf) {
     t.absent(err, 'no error')
@@ -39,7 +39,7 @@ test('read empty', function (t) {
 test('read range > file', function (t) {
   t.plan(2)
 
-  const file = raf(gen())
+  const file = new RAF(gen())
 
   file.read(0, 5, function (err, buf) {
     t.ok(err, 'not satisfiable')
@@ -50,7 +50,7 @@ test('read range > file', function (t) {
 test('read range > file with data', function (t) {
   t.plan(3)
 
-  const file = raf(gen())
+  const file = new RAF(gen())
 
   file.write(0, Buffer.from('hello'), function (err) {
     t.absent(err, 'no error')
@@ -64,7 +64,7 @@ test('read range > file with data', function (t) {
 test('random access write and read', function (t) {
   t.plan(8)
 
-  const file = raf(gen())
+  const file = new RAF(gen())
 
   file.write(10, Buffer.from('hi'), function (err) {
     t.absent(err, 'no error')
@@ -90,11 +90,11 @@ test('re-open', function (t) {
   t.plan(3)
 
   const name = gen()
-  const file = raf(name)
+  const file = new RAF(name)
 
   file.write(10, Buffer.from('hello'), function (err) {
     t.absent(err, 'no error')
-    const file2 = raf(name)
+    const file2 = new RAF(name)
     file2.read(10, 5, function (err, buf) {
       t.absent(err, 'no error')
       t.alike(buf, Buffer.from('hello'))
@@ -106,11 +106,11 @@ test('re-open and truncate', function (t) {
   t.plan(2)
 
   const name = gen()
-  const file = raf(name)
+  const file = new RAF(name)
 
   file.write(10, Buffer.from('hello'), function (err) {
     t.absent(err, 'no error')
-    const file2 = raf(name, { truncate: true })
+    const file2 = new RAF(name, { truncate: true })
     file2.read(10, 5, function (err, buf) {
       t.ok(err, 'file should be truncated')
     })
@@ -120,7 +120,7 @@ test('re-open and truncate', function (t) {
 test('truncate with size', function (t) {
   t.plan(3)
 
-  const file = raf(gen(), { size: 100, writable: true })
+  const file = new RAF(gen(), { size: 100, writable: true })
 
   file.stat(function (err, st) {
     t.absent(err, 'no error')
@@ -135,7 +135,7 @@ test('bad open', {
 }, function (t) {
   t.plan(2)
 
-  const file = raf(tmp, { writable: true })
+  const file = new RAF(tmp, { writable: true })
 
   file.open(function (err) {
     t.ok(err)
@@ -147,7 +147,7 @@ test('mkdir path', function (t) {
   t.plan(4)
 
   const name = path.join(tmp, ++i + '-folder', 'test.txt')
-  const file = raf(name)
+  const file = new RAF(name)
 
   file.write(0, Buffer.from('hello'), function (err) {
     t.absent(err, 'no error')
@@ -162,7 +162,7 @@ test('mkdir path', function (t) {
 test('write/read big chunks', async function (t) {
   t.plan(2)
 
-  const file = raf(gen())
+  const file = new RAF(gen())
   const bigBuffer = Buffer.alloc(10 * 1024 * 1024)
 
   bigBuffer.fill('hey. hey. how are you doing?. i am good thanks how about you? i am good')
@@ -194,7 +194,7 @@ test('rmdir option', function (t) {
   t.plan(5)
 
   const name = path.join('rmdir', ++i + '', 'folder', 'test.txt')
-  const file = raf(name, { rmdir: true, directory: tmp })
+  const file = new RAF(name, { rmdir: true, directory: tmp })
 
   file.write(0, Buffer.from('hi'), function (err) {
     t.absent(err, 'no error')
@@ -218,7 +218,7 @@ test('rmdir option with non empty parent', function (t) {
 
   const name = path.join('rmdir', ++i + '', 'folder', 'test.txt')
   const nonEmpty = path.join(tmp, name, '../..')
-  const file = raf(name, { rmdir: true, directory: tmp })
+  const file = new RAF(name, { rmdir: true, directory: tmp })
 
   file.write(0, Buffer.from('hi'), function (err) {
     t.absent(err, 'no error')
@@ -245,7 +245,7 @@ test('rmdir option with non empty parent', function (t) {
 test('del', function (t) {
   t.plan(10)
 
-  const file = raf(gen())
+  const file = new RAF(gen())
 
   file.write(0, Buffer.alloc(100), function (err) {
     t.absent(err, 'no error')
@@ -275,7 +275,7 @@ test('open and close many times', function (t) {
   t.plan(3)
 
   const name = gen()
-  const file = raf(name)
+  const file = new RAF(name)
   const buf = Buffer.alloc(4)
 
   file.write(0, buf, function (err) {
@@ -287,7 +287,7 @@ test('open and close many times', function (t) {
   })
 
   function loop (n, cb) {
-    const file = raf(name)
+    const file = new RAF(name)
     file.read(0, 4, function (err, buffer) {
       if (err) return cb(err)
       if (!buf.equals(buffer)) {
@@ -309,7 +309,7 @@ test('open and close many times', function (t) {
 test('trigger bad open', function (t) {
   t.plan(3)
 
-  const file = raf(gen(), { writable: true })
+  const file = new RAF(gen(), { writable: true })
 
   file.fd = 10000
   file.open(function (err) {
@@ -325,7 +325,7 @@ test('trigger lock', function (t) {
   t.plan(4)
 
   const p = gen()
-  const file = raf(p, { writable: true, lock: () => false })
+  const file = new RAF(p, { writable: true, lock: () => false })
 
   file.open(function (err) {
     t.ok(err, 'should error because it is locked')
@@ -339,7 +339,7 @@ test('cannot escape directory', function (t) {
   t.plan(2)
 
   const name = '../../../../../../../../../../../../../tmp'
-  const file = raf(name, { writable: true, directory: tmp })
+  const file = new RAF(name, { writable: true, directory: tmp })
 
   file.open(function (err) {
     t.absent(err, 'no error')
@@ -349,7 +349,7 @@ test('cannot escape directory', function (t) {
 
 test('directory filename resolves correctly', function (t) {
   const name = 'test.txt'
-  const file = raf(name, { writable: true, directory: tmp })
+  const file = new RAF(name, { writable: true, directory: tmp })
   t.is(file.filename, path.join(tmp, name))
 })
 

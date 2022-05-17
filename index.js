@@ -6,11 +6,7 @@ const constants = fs.constants || require('constants') // eslint-disable-line n/
 const READONLY = constants.O_RDONLY
 const READWRITE = constants.O_RDWR | constants.O_CREAT
 
-module.exports = function randomAccessFile (filename, opts) {
-  return new RandomAccessFile(filename, opts)
-}
-
-class RandomAccessFile extends RandomAccessStorage {
+module.exports = class RandomAccessFile extends RandomAccessStorage {
   constructor (filename, opts) {
     super()
 
