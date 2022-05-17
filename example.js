@@ -1,11 +1,11 @@
-var raf = require('random-access-file')
-var file = raf('hello.txt')
+const raf = require('random-access-file')
+const file = raf('hello.txt')
 
-var max = 500 * 1024 * 1024
-var buf = Buffer.alloc(1024)
+const max = 500 * 1024 * 1024
+const buf = Buffer.alloc(1024)
 buf.fill('lo')
 
-var offset = 0
+let offset = 0
 write()
 
 function write () {

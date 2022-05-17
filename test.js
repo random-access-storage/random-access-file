@@ -1,77 +1,85 @@
-var raf = require('./')
-var tape = require('tape')
-var os = require('os')
-var path = require('path')
-var fs = require('fs')
-var mkdirp = require('mkdirp')
-var isWin = process.platform === 'win32'
+const raf = require('./')
+const test = require('brittle')
+const os = require('os')
+const path = require('path')
+const fs = require('fs')
+const mkdirp = require('mkdirp')
 
-var tmp = path.join(os.tmpdir(), 'random-access-file-' + process.pid + '-' + Date.now())
-var i = 0
+const tmp = path.join(os.tmpdir(), 'random-access-file-' + process.pid + '-' + Date.now())
+let i = 0
 
 mkdirp.sync(tmp)
 
-tape('write and read', function (t) {
-  var file = raf(gen())
+test('write and read', function (t) {
+  t.plan(4)
+
+  const file = raf(gen())
 
   file.write(0, Buffer.from('hello'), function (err) {
-    t.error(err, 'no error')
+    t.absent(err, 'no error')
     file.read(0, 5, function (err, buf) {
-      t.error(err, 'no error')
-      t.same(buf, Buffer.from('hello'))
-      file.destroy(() => t.end())
+      t.absent(err, 'no error')
+      t.alike(buf, Buffer.from('hello'))
+      file.destroy(() => t.pass())
     })
   })
 })
 
-tape('read empty', function (t) {
-  var file = raf(gen(), { writable: true })
+test('read empty', function (t) {
+  t.plan(3)
+
+  const file = raf(gen(), { writable: true })
 
   file.read(0, 0, function (err, buf) {
-    t.error(err, 'no error')
-    t.same(buf, Buffer.alloc(0), 'empty buffer')
-    file.destroy(() => t.end())
+    t.absent(err, 'no error')
+    t.alike(buf, Buffer.alloc(0), 'empty buffer')
+    file.destroy(() => t.pass())
   })
 })
 
-tape('read range > file', function (t) {
-  var file = raf(gen())
+test('read range > file', function (t) {
+  t.plan(2)
+
+  const file = raf(gen())
 
   file.read(0, 5, function (err, buf) {
     t.ok(err, 'not satisfiable')
-    file.destroy(() => t.end())
+    file.destroy(() => t.pass())
   })
 })
 
-tape('read range > file with data', function (t) {
-  var file = raf(gen())
+test('read range > file with data', function (t) {
+  t.plan(3)
+
+  const file = raf(gen())
 
   file.write(0, Buffer.from('hello'), function (err) {
-    t.error(err, 'no error')
+    t.absent(err, 'no error')
     file.read(0, 10, function (err, buf) {
       t.ok(err, 'not satisfiable')
-      file.destroy(() => t.end())
+      file.destroy(() => t.pass())
     })
   })
 })
 
-tape('random access write and read', function (t) {
-  var file = raf(gen())
+test('random access write and read', function (t) {
+  t.plan(8)
+
+  const file = raf(gen())
 
   file.write(10, Buffer.from('hi'), function (err) {
-    t.error(err, 'no error')
+    t.absent(err, 'no error')
     file.write(0, Buffer.from('hello'), function (err) {
-      t.error(err, 'no error')
+      t.absent(err, 'no error')
       file.read(10, 2, function (err, buf) {
-        t.error(err, 'no error')
-        t.same(buf, Buffer.from('hi'))
+        t.absent(err, 'no error')
+        t.alike(buf, Buffer.from('hi'))
         file.read(0, 5, function (err, buf) {
-          t.error(err, 'no error')
-          t.same(buf, Buffer.from('hello'))
+          t.absent(err, 'no error')
+          t.alike(buf, Buffer.from('hello'))
           file.read(5, 5, function (err, buf) {
-            t.error(err, 'no error')
-            t.same(buf, Buffer.from([0, 0, 0, 0, 0]))
-            t.end()
+            t.absent(err, 'no error')
+            t.alike(buf, Buffer.from([0, 0, 0, 0, 0]))
           })
         })
       })
@@ -79,169 +87,183 @@ tape('random access write and read', function (t) {
   })
 })
 
-tape('re-open', function (t) {
-  var name = gen()
-  var file = raf(name)
+test('re-open', function (t) {
+  t.plan(3)
+
+  const name = gen()
+  const file = raf(name)
 
   file.write(10, Buffer.from('hello'), function (err) {
-    t.error(err, 'no error')
-    var file2 = raf(name)
+    t.absent(err, 'no error')
+    const file2 = raf(name)
     file2.read(10, 5, function (err, buf) {
-      t.error(err, 'no error')
-      t.same(buf, Buffer.from('hello'))
-      t.end()
+      t.absent(err, 'no error')
+      t.alike(buf, Buffer.from('hello'))
     })
   })
 })
 
-tape('re-open and truncate', function (t) {
-  var name = gen()
-  var file = raf(name)
+test('re-open and truncate', function (t) {
+  t.plan(2)
+
+  const name = gen()
+  const file = raf(name)
 
   file.write(10, Buffer.from('hello'), function (err) {
-    t.error(err, 'no error')
-    var file2 = raf(name, { truncate: true })
+    t.absent(err, 'no error')
+    const file2 = raf(name, { truncate: true })
     file2.read(10, 5, function (err, buf) {
       t.ok(err, 'file should be truncated')
-      t.end()
     })
   })
 })
 
-tape('truncate with size', function (t) {
-  var file = raf(gen(), { size: 100, writable: true })
+test('truncate with size', function (t) {
+  t.plan(3)
+
+  const file = raf(gen(), { size: 100, writable: true })
 
   file.stat(function (err, st) {
-    t.error(err, 'no error')
-    t.same(st.size, 100)
-    file.destroy(() => t.end())
+    t.absent(err, 'no error')
+    t.is(st.size, 100)
+    file.destroy(() => t.pass())
   })
 })
 
-tape('bad open', function (t) {
-  if (isWin) return t.end() // windows apparently allow you to open dirs :/
+test('bad open', {
+  // windows apparently allow you to open dirs :/
+  skip: process.platform === 'win32'
+}, function (t) {
+  t.plan(2)
 
-  var file = raf(tmp, { writable: true })
+  const file = raf(tmp, { writable: true })
 
   file.open(function (err) {
     t.ok(err)
-    file.close(() => t.end())
+    file.close(() => t.pass())
   })
 })
 
-tape('mkdir path', function (t) {
-  var name = path.join(tmp, ++i + '-folder', 'test.txt')
-  var file = raf(name)
+test('mkdir path', function (t) {
+  t.plan(4)
+
+  const name = path.join(tmp, ++i + '-folder', 'test.txt')
+  const file = raf(name)
 
   file.write(0, Buffer.from('hello'), function (err) {
-    t.error(err, 'no error')
+    t.absent(err, 'no error')
     file.read(0, 5, function (err, buf) {
-      t.error(err, 'no error')
-      t.same(buf, Buffer.from('hello'))
-      t.end()
-      file.destroy()
+      t.absent(err, 'no error')
+      t.alike(buf, Buffer.from('hello'))
+      file.destroy(() => t.pass())
     })
   })
 })
 
-tape('write/read big chunks', function (t) {
-  var file = raf(gen())
-  var bigBuffer = Buffer.alloc(10 * 1024 * 1024)
-  var missing = 2
+test('write/read big chunks', async function (t) {
+  t.plan(2)
+
+  const file = raf(gen())
+  const bigBuffer = Buffer.alloc(10 * 1024 * 1024)
 
   bigBuffer.fill('hey. hey. how are you doing?. i am good thanks how about you? i am good')
 
+  const io = t.test('write and read')
+  io.plan(6)
+
   file.write(0, bigBuffer, function (err) {
-    t.error(err, 'no error')
+    io.absent(err, 'no error')
     file.read(0, bigBuffer.length, function (err, buf) {
-      t.error(err, 'no error')
-      t.same(buf, bigBuffer)
-      done()
+      io.absent(err, 'no error')
+      io.alike(buf, bigBuffer)
     })
   })
   file.write(bigBuffer.length * 2, bigBuffer, function (err) {
-    t.error(err, 'no error')
+    io.absent(err, 'no error')
     file.read(bigBuffer.length * 2, bigBuffer.length, function (err, buf) {
-      t.error(err, 'no error')
-      t.same(buf, bigBuffer)
-      done()
+      io.absent(err, 'no error')
+      io.alike(buf, bigBuffer)
     })
   })
 
-  function done () {
-    if (!--missing) file.destroy(() => t.end())
-  }
+  await io
+
+  file.destroy(() => t.pass())
 })
 
-tape('rmdir option', function (t) {
-  var name = path.join('rmdir', ++i + '', 'folder', 'test.txt')
-  var file = raf(name, { rmdir: true, directory: tmp })
+test('rmdir option', function (t) {
+  t.plan(5)
+
+  const name = path.join('rmdir', ++i + '', 'folder', 'test.txt')
+  const file = raf(name, { rmdir: true, directory: tmp })
 
   file.write(0, Buffer.from('hi'), function (err) {
-    t.error(err, 'no error')
+    t.absent(err, 'no error')
     file.read(0, 2, function (err, buf) {
-      t.error(err, 'no error')
-      t.same(buf, Buffer.from('hi'))
+      t.absent(err, 'no error')
+      t.alike(buf, Buffer.from('hi'))
       file.destroy(ondestroy)
     })
   })
 
   function ondestroy (err) {
-    t.error(err, 'no error')
+    t.absent(err, 'no error')
     fs.stat(path.join(tmp, 'rmdir'), function (err) {
-      t.same(err && err.code, 'ENOENT', 'should be removed')
-      t.end()
+      t.is(err && err.code, 'ENOENT', 'should be removed')
     })
   }
 })
 
-tape('rmdir option with non empty parent', function (t) {
-  var name = path.join('rmdir', ++i + '', 'folder', 'test.txt')
-  var nonEmpty = path.join(tmp, name, '../..')
-  var file = raf(name, { rmdir: true, directory: tmp })
+test('rmdir option with non empty parent', function (t) {
+  t.plan(7)
+
+  const name = path.join('rmdir', ++i + '', 'folder', 'test.txt')
+  const nonEmpty = path.join(tmp, name, '../..')
+  const file = raf(name, { rmdir: true, directory: tmp })
 
   file.write(0, Buffer.from('hi'), function (err) {
-    t.error(err, 'no error')
+    t.absent(err, 'no error')
     fs.writeFileSync(path.join(nonEmpty, 'thing'), '')
     file.read(0, 2, function (err, buf) {
-      t.error(err, 'no error')
-      t.same(buf, Buffer.from('hi'))
+      t.absent(err, 'no error')
+      t.alike(buf, Buffer.from('hi'))
       file.destroy(ondestroy)
     })
   })
 
   function ondestroy (err) {
-    t.error(err, 'no error')
+    t.absent(err, 'no error')
     fs.stat(path.join(tmp, 'rmdir'), function (err) {
-      t.error(err, 'should not be removed')
+      t.absent(err, 'should not be removed')
       fs.readdir(nonEmpty, function (err, list) {
-        t.error(err, 'no error')
-        t.same(list, ['thing'], 'should only be one entry')
-        t.end()
+        t.absent(err, 'no error')
+        t.alike(list, ['thing'], 'should only be one entry')
       })
     })
   }
 })
 
-tape('del', function (t) {
-  var file = raf(gen())
+test('del', function (t) {
+  t.plan(10)
+
+  const file = raf(gen())
 
   file.write(0, Buffer.alloc(100), function (err) {
-    t.error(err, 'no error')
+    t.absent(err, 'no error')
     file.stat(function (err, st) {
-      t.error(err, 'no error')
-      t.same(st.size, 100)
+      t.absent(err, 'no error')
+      t.is(st.size, 100)
       file.del(0, 40, function (err) {
-        t.error(err, 'no error')
+        t.absent(err, 'no error')
         file.stat(function (err, st) {
-          t.error(err, 'no error')
-          t.same(st.size, 100, 'inplace del, same size')
+          t.absent(err, 'no error')
+          t.is(st.size, 100, 'inplace del, same size')
           file.del(50, 50, function (err) {
-            t.error(err, 'no error')
+            t.absent(err, 'no error')
             file.stat(function (err, st) {
-              t.error(err, 'no error')
-              t.same(st.size, 50)
-              file.destroy(() => t.end())
+              t.absent(err, 'no error')
+              t.is(st.size, 50)
+              file.destroy(() => t.pass())
             })
           })
         })
@@ -250,25 +272,27 @@ tape('del', function (t) {
   })
 })
 
-tape('open and close many times', function (t) {
-  var name = gen()
-  var file = raf(name)
-  var buf = Buffer.alloc(4)
+test('open and close many times', function (t) {
+  t.plan(3)
+
+  const name = gen()
+  const file = raf(name)
+  const buf = Buffer.alloc(4)
 
   file.write(0, buf, function (err) {
-    t.error(err, 'no error')
+    t.absent(err, 'no error')
     loop(5000, function (err) {
-      t.error(err, 'no error')
-      file.destroy(() => t.end())
+      t.absent(err, 'no error')
+      file.destroy(() => t.pass())
     })
   })
 
   function loop (n, cb) {
-    var file = raf(name)
+    const file = raf(name)
     file.read(0, 4, function (err, buffer) {
       if (err) return cb(err)
       if (!buf.equals(buffer)) {
-        t.same(buffer, buf)
+        t.alike(buffer, buf)
         return cb()
       }
       buf.writeUInt32BE(n)
@@ -283,48 +307,51 @@ tape('open and close many times', function (t) {
   }
 })
 
-tape('trigger bad open', function (t) {
-  var file = raf(gen(), { writable: true })
+test('trigger bad open', function (t) {
+  t.plan(3)
+
+  const file = raf(gen(), { writable: true })
 
   file.fd = 10000
   file.open(function (err) {
     t.ok(err, 'should error trying to close old fd')
     file.open(function (err) {
-      t.error(err, 'no error')
-      file.destroy(() => t.end())
+      t.absent(err, 'no error')
+      file.destroy(() => t.pass())
     })
   })
 })
 
-tape('trigger lock', function (t) {
-  var p = gen()
-  var file = raf(p, { writable: true, lock: () => false })
+test('trigger lock', function (t) {
+  t.plan(4)
+
+  const p = gen()
+  const file = raf(p, { writable: true, lock: () => false })
 
   file.open(function (err) {
     t.ok(err, 'should error because it is locked')
-    t.same(err.message, 'ELOCKED: File is locked')
-    t.same(err.path, p)
-    t.same(err.code, 'ELOCKED')
-    t.end()
+    t.is(err.message, 'ELOCKED: File is locked')
+    t.is(err.path, p)
+    t.is(err.code, 'ELOCKED')
   })
 })
 
-tape('cannot escape directory', function (t) {
-  var name = '../../../../../../../../../../../../../tmp'
-  var file = raf(name, { writable: true, directory: tmp })
+test('cannot escape directory', function (t) {
+  t.plan(2)
+
+  const name = '../../../../../../../../../../../../../tmp'
+  const file = raf(name, { writable: true, directory: tmp })
 
   file.open(function (err) {
-    t.error(err, 'no error')
-    t.same(file.filename, path.join(tmp, 'tmp'))
-    t.end()
+    t.absent(err, 'no error')
+    t.is(file.filename, path.join(tmp, 'tmp'))
   })
 })
 
-tape('directory filename resolves correctly', function (t) {
-  var name = 'test.txt'
-  var file = raf(name, { writable: true, directory: tmp })
-  t.same(file.filename, path.join(tmp, name))
-  t.end()
+test('directory filename resolves correctly', function (t) {
+  const name = 'test.txt'
+  const file = raf(name, { writable: true, directory: tmp })
+  t.is(file.filename, path.join(tmp, name))
 })
 
 function gen () {

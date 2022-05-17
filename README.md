@@ -15,9 +15,9 @@ random-access-file allows you to do just this.
 ## Usage
 
 ``` js
-var randomAccessFile = require('random-access-file')
+const randomAccessFile = require('random-access-file')
 
-var file = randomAccessFile('my-file.txt')
+const file = randomAccessFile('my-file.txt')
 
 file.write(10, Buffer.from('hello'), function(err) {
   // write a buffer to offset 10
@@ -34,7 +34,7 @@ file will use an open file descriptor. When you are done with the file you shoul
 
 ## API
 
-#### `var file = randomAccessFile(filename, [options])`
+#### `const file = randomAccessFile(filename, [options])`
 
 Create a new file. Options include:
 
