@@ -1,6 +1,5 @@
 const RandomAccessStorage = require('random-access-storage')
 const fs = require('fs')
-const mkdirp = require('mkdirp-classic')
 const path = require('path')
 const constants = fs.constants || require('constants') // eslint-disable-line n/no-deprecated-api
 
@@ -37,7 +36,7 @@ class RandomAccessFile extends RandomAccessStorage {
   _open (req) {
     const self = this
 
-    mkdirp(path.dirname(this.filename), ondir)
+    fs.mkdir(path.dirname(this.filename), { recursive: true }, ondir)
 
     function ondir (err) {
       if (err) return req.callback(err)

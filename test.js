@@ -3,12 +3,11 @@ const test = require('brittle')
 const os = require('os')
 const path = require('path')
 const fs = require('fs')
-const mkdirp = require('mkdirp')
 
 const tmp = path.join(os.tmpdir(), 'random-access-file-' + process.pid + '-' + Date.now())
 let i = 0
 
-mkdirp.sync(tmp)
+fs.mkdirSync(tmp, { recursive: true })
 
 test('write and read', function (t) {
   t.plan(4)
