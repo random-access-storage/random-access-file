@@ -2,7 +2,7 @@ const test = require('brittle')
 const os = require('os')
 const path = require('path')
 const fs = require('fs')
-const RAF = require('./')
+const RAF = require('.')
 
 const tmp = path.join(os.tmpdir(), 'random-access-file-' + process.pid + '-' + Date.now())
 let i = 0
