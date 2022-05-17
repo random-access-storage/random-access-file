@@ -1,5 +1,5 @@
-const raf = require('random-access-file')
-const file = raf('hello.txt')
+const RAF = require('.')
+const file = new RAF('hello.txt')
 
 const max = 500 * 1024 * 1024
 const buf = Buffer.alloc(1024)
