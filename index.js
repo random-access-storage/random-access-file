@@ -7,10 +7,8 @@ const READONLY = constants.O_RDONLY
 const READWRITE = constants.O_RDWR | constants.O_CREAT
 
 module.exports = class RandomAccessFile extends RandomAccessStorage {
-  constructor (filename, opts) {
+  constructor (filename, opts = {}) {
     super()
-
-    opts = opts || {}
 
     if (opts.directory) filename = path.join(opts.directory, path.resolve('/', filename).replace(/^\w+:\\/, ''))
 
