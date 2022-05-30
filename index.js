@@ -3,6 +3,11 @@ const fs = require('fs')
 const path = require('path')
 const constants = fs.constants || require('constants') // eslint-disable-line n/no-deprecated-api
 
+let fsctl = null
+try {
+  fsctl = require('fsctl')
+} catch {}
+
 const READONLY = constants.O_RDONLY
 const READWRITE = constants.O_RDWR | constants.O_CREAT
 
@@ -22,8 +27,7 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
     this._size = opts.size || opts.length || 0
     this._truncate = !!opts.truncate || this._size > 0
     this._rmdir = !!opts.rmdir
-    this._lock = opts.lock || noLock
-    this._sparse = opts.sparse || noLock
+    this._waitForLock = !!opts.waitForLock
     this._alloc = opts.alloc || Buffer.allocUnsafe
   }
 
@@ -51,8 +55,16 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
     function onopen (err, fd) {
       if (err) return req.callback(err)
       self.fd = fd
-      if (!self._lock(self.fd)) return req.callback(createLockError(self.filename)) // TODO: fix fd leak here
-      if (!self._sparse(self.fd)) return req.callback(createSparseError(self.filename))
+      self._lock(mode, self._waitForLock, onlock)
+    }
+
+    function onlock (err) {
+      if (err) return onerrorafteropen(err)
+      self._sparse(onsparse)
+    }
+
+    function onsparse (err) {
+      if (err) return onerrorafteropen(err)
       if (!self._truncate || mode === READONLY) return req.callback(null)
       fs.ftruncate(self.fd, self._size, ontruncate)
     }
@@ -168,21 +180,26 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
       fs.rmdir(dir, onrmdir)
     }
   }
+
+  _lock (mode, wait, cb) {
+    if (!fsctl) return cb(null)
+
+    const opts = { exclusive: mode === READWRITE }
+
+    if (wait) fsctl.lock(this.fd, opts).then(cb, cb)
+    else if (fsctl.tryLock(this.fd, opts)) cb(null)
+    else cb(createLockError(this.filename))
+  }
+
+  _sparse (cb) {
+    if (!fsctl) return cb(null)
+
+    fsctl.sparse(this.fd).then(cb, cb)
+  }
 }
 
 function readEmpty (req) {
   req.callback(null, Buffer.alloc(0))
-}
-
-function noLock (fd) {
-  return true
-}
-
-function createSparseError (path) {
-  const err = new Error('ENOTSPARSE: File could not be marked as sparse')
-  err.code = 'ENOTSPARSE'
-  err.path = path
-  return err
 }
 
 function createLockError (path) {
@@ -193,7 +210,7 @@ function createLockError (path) {
 }
 
 function createReadError (path, offset, size) {
-  const err = new Error('Could not satisfy length')
+  const err = new Error('EPARTIALREAD: Could not satisfy length')
   err.code = 'EPARTIALREAD'
   err.path = path
   err.offset = offset

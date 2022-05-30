@@ -2,7 +2,7 @@ const test = require('brittle')
 const os = require('os')
 const path = require('path')
 const fs = require('fs')
-const RAF = require('.')
+const RAF = require('..')
 
 const tmp = path.join(os.tmpdir(), 'random-access-file-' + process.pid + '-' + Date.now())
 let i = 0
@@ -318,20 +318,6 @@ test('trigger bad open', function (t) {
       t.absent(err, 'no error')
       file.destroy(() => t.pass())
     })
-  })
-})
-
-test('trigger lock', function (t) {
-  t.plan(4)
-
-  const p = gen()
-  const file = new RAF(p, { writable: true, lock: () => false })
-
-  file.open(function (err) {
-    t.ok(err, 'should error because it is locked')
-    t.is(err.message, 'ELOCKED: File is locked')
-    t.is(err.path, p)
-    t.is(err.code, 'ELOCKED')
   })
 })
 
