@@ -4,16 +4,15 @@
   "description": "Continuous reading or writing to a file using random offsets and lengths",
   "main": "index.js",
   "scripts": {
-    "test": "standard && tape test.js"
+    "test": "standard && brittle test.js"
   },
   "browser": "./browser.js",
   "dependencies": {
-    "mkdirp-classic": "^0.5.2",
     "random-access-storage": "^1.1.1"
   },
   "devDependencies": {
-    "standard": "^15.0.0",
-    "tape": "^4.8.0"
+    "brittle": "^2.3.1",
+    "standard": "^17.0.0"
   },
   "repository": {
     "type": "git",
