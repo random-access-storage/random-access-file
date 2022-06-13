@@ -87,6 +87,25 @@ test('random access write and read', function (t) {
 })
 
 test('re-open', function (t) {
+  t.plan(4)
+
+  const name = gen()
+  const file = new RAF(name)
+
+  file.write(10, Buffer.from('hello'), function (err) {
+    t.absent(err, 'no error')
+    file.close(function (err) {
+      t.absent(err, 'no error')
+      const file2 = new RAF(name)
+      file2.read(10, 5, function (err, buf) {
+        t.absent(err, 'no error')
+        t.alike(buf, Buffer.from('hello'))
+      })
+    })
+  })
+})
+
+test('re-open and truncate', function (t) {
   t.plan(3)
 
   const name = gen()
@@ -94,25 +113,12 @@ test('re-open', function (t) {
 
   file.write(10, Buffer.from('hello'), function (err) {
     t.absent(err, 'no error')
-    const file2 = new RAF(name)
-    file2.read(10, 5, function (err, buf) {
+    file.close(function (err) {
       t.absent(err, 'no error')
-      t.alike(buf, Buffer.from('hello'))
-    })
-  })
-})
-
-test('re-open and truncate', function (t) {
-  t.plan(2)
-
-  const name = gen()
-  const file = new RAF(name)
-
-  file.write(10, Buffer.from('hello'), function (err) {
-    t.absent(err, 'no error')
-    const file2 = new RAF(name, { truncate: true })
-    file2.read(10, 5, function (err, buf) {
-      t.ok(err, 'file should be truncated')
+      const file2 = new RAF(name, { truncate: true })
+      file2.read(10, 5, function (err, buf) {
+        t.ok(err, 'file should be truncated')
+      })
     })
   })
 })
@@ -280,9 +286,11 @@ test('open and close many times', function (t) {
 
   file.write(0, buf, function (err) {
     t.absent(err, 'no error')
-    loop(5000, function (err) {
+    file.close(function (err) {
       t.absent(err, 'no error')
-      file.destroy(() => t.pass())
+      loop(5000, function (err) {
+        t.absent(err, 'no error')
+      })
     })
   })
 
