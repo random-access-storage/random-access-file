@@ -27,7 +27,8 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
     this._size = opts.size || opts.length || 0
     this._truncate = !!opts.truncate || this._size > 0
     this._rmdir = !!opts.rmdir
-    this._waitForLock = !!opts.waitForLock
+    this._lock = opts.lock === true
+    this._sparse = opts.sparse === true
     this._alloc = opts.alloc || Buffer.allocUnsafe
   }
 
@@ -53,37 +54,53 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
     else fs.open(this.filename, mode, onopen)
 
     function onopen (err, fd) {
-      if (err) return req.callback(err)
+      if (err) return onerror(err)
+
       self.fd = fd
-      self._lock(mode, self._waitForLock, onlock)
+
+      if (!self._lock || !fsctl) return onlock(null)
+
+      if (fsctl.tryLock(self.fd, { shared: mode === READONLY })) onlock(null)
+      else onlock(createLockError(self.filename))
     }
 
     function onlock (err) {
       if (err) return onerrorafteropen(err)
-      self._sparse(onsparse)
+
+      if (!self._sparse || !fsctl) return onsparse(null)
+
+      fsctl.sparse(self.fd).then(onsparse, onsparse)
     }
 
     function onsparse (err) {
       if (err) return onerrorafteropen(err)
-      if (!self._truncate || mode === READONLY) return req.callback(null)
+
+      if (!self._truncate || mode === READONLY) return ontruncate(null)
+
       fs.ftruncate(self.fd, self._size, ontruncate)
     }
 
     function oncloseold (err) {
       if (err) return onerrorafteropen(err)
+
       self.fd = 0
       fs.open(self.filename, mode, onopen)
     }
 
     function ontruncate (err) {
       if (err) return onerrorafteropen(err)
+
       req.callback(null)
+    }
+
+    function onerror (err) {
+      req.callback(err)
     }
 
     function onerrorafteropen (err) {
       fs.close(self.fd, function () {
         self.fd = 0
-        req.callback(err)
+        onerror(err)
       })
     }
   }
@@ -179,22 +196,6 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
       if (err || dir === root) return req.callback(null)
       fs.rmdir(dir, onrmdir)
     }
-  }
-
-  _lock (mode, wait, cb) {
-    if (!fsctl) return cb(null)
-
-    const opts = { exclusive: mode === READWRITE }
-
-    if (wait) fsctl.lock(this.fd, opts).then(cb, cb)
-    else if (fsctl.tryLock(this.fd, opts)) cb(null)
-    else cb(createLockError(this.filename))
-  }
-
-  _sparse (cb) {
-    if (!fsctl) return cb(null)
-
-    fsctl.sparse(this.fd).then(cb, cb)
   }
 }
 

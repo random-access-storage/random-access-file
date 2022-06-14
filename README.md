@@ -44,7 +44,8 @@ Create a new file. Options include:
   size: someSize, // truncate the file to this size first
   readable: true, // should the file be opened as readable?
   writable: true,  // should the file be opened as writable?
-  waitForLock: false // wait for the file lock to be acquired
+  lock: false, // lock the file
+  sparse: false // mark the file as sparse
 }
 ```
 

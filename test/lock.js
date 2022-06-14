@@ -1,111 +1,88 @@
 const test = require('brittle')
-const { fork } = require('child_process')
+const RAF = require('..')
 
-test('2 exclusive locks', function (t) {
-  t.plan(2)
+test('2 writers', function (t) {
+  t.plan(4)
 
   const file = 'test/fixture/exclusive.txt'
 
-  const p1 = fork('test/fixture/lock.js', [file])
+  const a = new RAF(file, { lock: true, writable: true })
+  const b = new RAF(file, { lock: true, writable: true })
 
-  p1.on('message', (message) => {
-    t.alike(message, { opened: true }, 'lock granted')
+  a.open(function (err) {
+    t.absent(err, 'a granted lock')
 
-    const p2 = fork('test/fixture/lock.js', [file])
+    b.open(function (err) {
+      t.ok(err, 'b denied lock')
 
-    p2.on('message', (message) => {
-      t.alike(message, {
-        opened: false,
-        error: {
-          code: 'ELOCKED',
-          path: file
-        }
-      }, 'lock denied')
-
-      p1.kill()
-      p2.kill()
+      a.close(() => t.pass('a closed'))
+      b.close(() => t.pass('b closed'))
     })
   })
 })
 
-test('2 shared locks', function (t) {
-  t.plan(2)
+test('2 readers', function (t) {
+  t.plan(4)
 
   const file = 'test/fixture/shared.txt'
 
-  const p1 = fork('test/fixture/lock.js', [file, '--writable=false'])
+  const a = new RAF(file, { lock: true, writable: false })
+  const b = new RAF(file, { lock: true, writable: false })
 
-  p1.on('message', (message) => {
-    t.alike(message, { opened: true }, 'lock granted')
+  a.open(function (err) {
+    t.absent(err, 'a granted lock')
 
-    const p2 = fork('test/fixture/lock.js', [file, '--writable=false'])
+    b.open(function (err) {
+      t.absent(err, 'b granted lock')
 
-    p2.on('message', (message) => {
-      t.alike(message, { opened: true }, 'lock granted')
-
-      p1.kill()
-      p2.kill()
+      a.close(() => t.pass('a closed'))
+      b.close(() => t.pass('b closed'))
     })
   })
 })
 
-test('2 shared locks + 1 exclusive lock', function (t) {
-  t.plan(3)
+test('2 readers + 1 writer', function (t) {
+  t.plan(6)
 
   const file = 'test/fixture/shared.txt'
 
-  const p1 = fork('test/fixture/lock.js', [file, '--writable=false'])
+  const a = new RAF(file, { lock: true, writable: false })
+  const b = new RAF(file, { lock: true, writable: false })
+  const c = new RAF(file, { lock: true, writable: true })
 
-  p1.on('message', (message) => {
-    t.alike(message, { opened: true }, 'lock granted')
+  a.open(function (err) {
+    t.absent(err, 'a granted lock')
 
-    const p2 = fork('test/fixture/lock.js', [file, '--writable=false'])
+    b.open(function (err) {
+      t.absent(err, 'b granted lock')
 
-    p2.on('message', (message) => {
-      t.alike(message, { opened: true }, 'lock granted')
+      c.open(function (err) {
+        t.ok(err, 'c denied lock')
 
-      const p3 = fork('test/fixture/lock.js', [file])
-
-      p3.on('message', (message) => {
-        t.alike(message, {
-          opened: false,
-          error: {
-            code: 'ELOCKED',
-            path: file
-          }
-        }, 'lock denied')
-
-        p1.kill()
-        p2.kill()
-        p3.kill()
+        a.close(() => t.pass('a closed'))
+        b.close(() => t.pass('b closed'))
+        c.close(() => t.pass('c closed'))
       })
     })
   })
 })
 
-test('1 exclusive lock + 1 shared lock', function (t) {
-  t.plan(2)
+test('1 writer + 1 reader', function (t) {
+  t.plan(4)
 
-  const file = 'test/fixture/shared.txt'
+  const file = 'test/fixture/exclusive.txt'
 
-  const p1 = fork('test/fixture/lock.js', [file])
+  const a = new RAF(file, { lock: true, writable: true })
+  const b = new RAF(file, { lock: true, writable: false })
 
-  p1.on('message', (message) => {
-    t.alike(message, { opened: true }, 'lock granted')
+  a.open(function (err) {
+    t.absent(err, 'a granted lock')
 
-    const p2 = fork('test/fixture/lock.js', [file, '--writable=false'])
+    b.open(function (err) {
+      t.ok(err, 'b denied lock')
 
-    p2.on('message', (message) => {
-      t.alike(message, {
-        opened: false,
-        error: {
-          code: 'ELOCKED',
-          path: file
-        }
-      }, 'lock denied')
-
-      p1.kill()
-      p2.kill()
+      a.close(() => t.pass('a closed'))
+      b.close(() => t.pass('b closed'))
     })
   })
 })
