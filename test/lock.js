@@ -6,8 +6,8 @@ test('2 writers', function (t) {
 
   const file = 'test/fixture/exclusive.txt'
 
-  const a = new RAF(file, { lock: true, writable: true })
-  const b = new RAF(file, { lock: true, writable: true })
+  const a = new RAF(file, { lock: true })
+  const b = new RAF(file, { lock: true })
 
   a.open(function (err) {
     t.absent(err, 'a granted lock')
@@ -48,7 +48,7 @@ test('2 readers + 1 writer', function (t) {
 
   const a = new RAF(file, { lock: true, writable: false })
   const b = new RAF(file, { lock: true, writable: false })
-  const c = new RAF(file, { lock: true, writable: true })
+  const c = new RAF(file, { lock: true })
 
   a.open(function (err) {
     t.absent(err, 'a granted lock')
@@ -72,7 +72,7 @@ test('1 writer + 1 reader', function (t) {
 
   const file = 'test/fixture/exclusive.txt'
 
-  const a = new RAF(file, { lock: true, writable: true })
+  const a = new RAF(file, { lock: true })
   const b = new RAF(file, { lock: true, writable: false })
 
   a.open(function (err) {

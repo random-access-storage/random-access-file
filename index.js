@@ -3,13 +3,15 @@ const fs = require('fs')
 const path = require('path')
 const constants = fs.constants || require('constants') // eslint-disable-line n/no-deprecated-api
 
-let fsctl = null
+let fsext = null
 try {
-  fsctl = require('fsctl')
+  fsext = require('fs-native-extensions')
 } catch {}
 
-const READONLY = constants.O_RDONLY
-const READWRITE = constants.O_RDWR | constants.O_CREAT
+const RDWR = constants.O_RDWR
+const RDONLY = constants.O_RDONLY
+const WRONLY = constants.O_WRONLY
+const CREAT = constants.O_CREAT
 
 module.exports = class RandomAccessFile extends RandomAccessStorage {
   constructor (filename, opts = {}) {
@@ -21,10 +23,14 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
     this.filename = filename
     this.fd = 0
 
-    // makes random-access-storage open in writable mode first
-    if (opts.writable || opts.truncate) this.preferReadonly = false
+    const {
+      readable = true,
+      writable = true
+    } = opts
 
-    this._size = opts.size || opts.length || 0
+    this.mode = readable && writable ? RDWR : (readable ? RDONLY : WRONLY)
+
+    this._size = opts.size || 0
     this._truncate = !!opts.truncate || this._size > 0
     this._rmdir = !!opts.rmdir
     this._lock = opts.lock === true
@@ -34,48 +40,43 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
 
   _open (req) {
     const self = this
+    const mode = this.mode | CREAT
 
     fs.mkdir(path.dirname(this.filename), { recursive: true }, ondir)
 
     function ondir (err) {
       if (err) return req.callback(err)
-      self._openMode(READWRITE, req)
+
+      if (self.fd) fs.close(self.fd, oncloseold)
+      else fs.open(self.filename, mode, onopen)
     }
-  }
-
-  _openReadonly (req) {
-    this._openMode(READONLY, req)
-  }
-
-  _openMode (mode, req) {
-    const self = this
-
-    if (this.fd) fs.close(this.fd, oncloseold)
-    else fs.open(this.filename, mode, onopen)
 
     function onopen (err, fd) {
       if (err) return onerror(err)
 
       self.fd = fd
 
-      if (!self._lock || !fsctl) return onlock(null)
+      if (!self._lock || !fsext) return onlock(null)
 
-      if (fsctl.tryLock(self.fd, { shared: mode === READONLY })) onlock(null)
+      // Should we aquire a read lock?
+      const shared = self.mode === RDONLY
+
+      if (fsext.tryLock(self.fd, { shared })) onlock(null)
       else onlock(createLockError(self.filename))
     }
 
     function onlock (err) {
       if (err) return onerrorafteropen(err)
 
-      if (!self._sparse || !fsctl) return onsparse(null)
+      if (!self._sparse || !fsext) return onsparse(null)
 
-      fsctl.sparse(self.fd).then(onsparse, onsparse)
+      fsext.sparse(self.fd).then(onsparse, onsparse)
     }
 
     function onsparse (err) {
       if (err) return onerrorafteropen(err)
 
-      if (!self._truncate || mode === READONLY) return ontruncate(null)
+      if (!self._truncate) return ontruncate(null)
 
       fs.ftruncate(self.fd, self._size, ontruncate)
     }

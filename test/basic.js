@@ -27,7 +27,7 @@ test('write and read', function (t) {
 test('read empty', function (t) {
   t.plan(3)
 
-  const file = new RAF(gen(), { writable: true })
+  const file = new RAF(gen())
 
   file.read(0, 0, function (err, buf) {
     t.absent(err, 'no error')
