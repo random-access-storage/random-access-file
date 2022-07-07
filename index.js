@@ -15,7 +15,10 @@ const CREAT = constants.O_CREAT
 
 module.exports = class RandomAccessFile extends RandomAccessStorage {
   constructor (filename, opts = {}) {
-    super()
+    const size = opts.size || 0
+    const truncate = !!opts.truncate || size > 0
+
+    super({ createAlways: truncate })
 
     if (opts.directory) filename = path.join(opts.directory, path.resolve('/', filename).replace(/^\w+:\\/, ''))
 
@@ -30,8 +33,8 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
 
     this.mode = readable && writable ? RDWR : (readable ? RDONLY : WRONLY)
 
-    this._size = opts.size || 0
-    this._truncate = !!opts.truncate || this._size > 0
+    this._size = size
+    this._truncate = truncate
     this._rmdir = !!opts.rmdir
     this._lock = opts.lock === true
     this._sparse = opts.sparse === true
@@ -40,7 +43,7 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
 
   _open (req) {
     const self = this
-    const mode = this.mode | CREAT
+    const mode = this.mode | (req.create ? CREAT : 0)
 
     fs.mkdir(path.dirname(this.filename), { recursive: true }, ondir)
 
