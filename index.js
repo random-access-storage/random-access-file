@@ -3,12 +3,22 @@ const fs = require('fs')
 const path = require('path')
 const constants = fs.constants || require('constants') // eslint-disable-line n/no-deprecated-api
 
-const READONLY = constants.O_RDONLY
-const READWRITE = constants.O_RDWR | constants.O_CREAT
+let fsext = null
+try {
+  fsext = require('fs-native-extensions')
+} catch {}
+
+const RDWR = constants.O_RDWR
+const RDONLY = constants.O_RDONLY
+const WRONLY = constants.O_WRONLY
+const CREAT = constants.O_CREAT
 
 module.exports = class RandomAccessFile extends RandomAccessStorage {
   constructor (filename, opts = {}) {
-    super()
+    const size = opts.size || 0
+    const truncate = !!opts.truncate || size > 0
+
+    super({ createAlways: truncate })
 
     if (opts.directory) filename = path.join(opts.directory, path.resolve('/', filename).replace(/^\w+:\\/, ''))
 
@@ -16,62 +26,85 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
     this.filename = filename
     this.fd = 0
 
-    // makes random-access-storage open in writable mode first
-    if (opts.writable || opts.truncate) this.preferReadonly = false
+    const {
+      readable = true,
+      writable = true
+    } = opts
 
-    this._size = opts.size || opts.length || 0
-    this._truncate = !!opts.truncate || this._size > 0
+    this.mode = readable && writable ? RDWR : (readable ? RDONLY : WRONLY)
+
+    this._size = size
+    this._truncate = truncate
     this._rmdir = !!opts.rmdir
-    this._lock = opts.lock || noLock
-    this._sparse = opts.sparse || noLock
+    this._lock = opts.lock === true
+    this._sparse = opts.sparse === true
     this._alloc = opts.alloc || Buffer.allocUnsafe
   }
 
   _open (req) {
     const self = this
+    const mode = this.mode | (req.create ? CREAT : 0)
 
     fs.mkdir(path.dirname(this.filename), { recursive: true }, ondir)
 
     function ondir (err) {
       if (err) return req.callback(err)
-      self._openMode(READWRITE, req)
+
+      if (self.fd) fs.close(self.fd, oncloseold)
+      else fs.open(self.filename, mode, onopen)
     }
-  }
-
-  _openReadonly (req) {
-    this._openMode(READONLY, req)
-  }
-
-  _openMode (mode, req) {
-    const self = this
-
-    if (this.fd) fs.close(this.fd, oncloseold)
-    else fs.open(this.filename, mode, onopen)
 
     function onopen (err, fd) {
-      if (err) return req.callback(err)
+      if (err) return onerror(err)
+
       self.fd = fd
-      if (!self._lock(self.fd)) return req.callback(createLockError(self.filename)) // TODO: fix fd leak here
-      if (!self._sparse(self.fd)) return req.callback(createSparseError(self.filename))
-      if (!self._truncate || mode === READONLY) return req.callback(null)
+
+      if (!self._lock || !fsext) return onlock(null)
+
+      // Should we aquire a read lock?
+      const shared = self.mode === RDONLY
+
+      if (fsext.tryLock(self.fd, { shared })) onlock(null)
+      else onlock(createLockError(self.filename))
+    }
+
+    function onlock (err) {
+      if (err) return onerrorafteropen(err)
+
+      if (!self._sparse || !fsext) return onsparse(null)
+
+      fsext.sparse(self.fd).then(onsparse, onsparse)
+    }
+
+    function onsparse (err) {
+      if (err) return onerrorafteropen(err)
+
+      if (!self._truncate) return ontruncate(null)
+
       fs.ftruncate(self.fd, self._size, ontruncate)
     }
 
     function oncloseold (err) {
       if (err) return onerrorafteropen(err)
+
       self.fd = 0
       fs.open(self.filename, mode, onopen)
     }
 
     function ontruncate (err) {
       if (err) return onerrorafteropen(err)
+
       req.callback(null)
+    }
+
+    function onerror (err) {
+      req.callback(err)
     }
 
     function onerrorafteropen (err) {
       fs.close(self.fd, function () {
         self.fd = 0
-        req.callback(err)
+        onerror(err)
       })
     }
   }
@@ -174,17 +207,6 @@ function readEmpty (req) {
   req.callback(null, Buffer.alloc(0))
 }
 
-function noLock (fd) {
-  return true
-}
-
-function createSparseError (path) {
-  const err = new Error('ENOTSPARSE: File could not be marked as sparse')
-  err.code = 'ENOTSPARSE'
-  err.path = path
-  return err
-}
-
 function createLockError (path) {
   const err = new Error('ELOCKED: File is locked')
   err.code = 'ELOCKED'
@@ -193,7 +215,7 @@ function createLockError (path) {
 }
 
 function createReadError (path, offset, size) {
-  const err = new Error('Could not satisfy length')
+  const err = new Error('EPARTIALREAD: Could not satisfy length')
   err.code = 'EPARTIALREAD'
   err.path = path
   err.offset = offset

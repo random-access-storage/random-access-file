@@ -4,11 +4,14 @@
   "description": "Continuous reading or writing to a file using random offsets and lengths",
   "main": "index.js",
   "scripts": {
-    "test": "standard && brittle test.js"
+    "test": "standard && brittle test/*.js"
   },
   "browser": "./browser.js",
   "dependencies": {
-    "random-access-storage": "^1.1.1"
+    "random-access-storage": "^2.1.0"
+  },
+  "optionalDependencies": {
+    "fs-native-extensions": "^1.0.0"
   },
   "devDependencies": {
     "brittle": "^2.3.1",

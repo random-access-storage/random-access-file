@@ -2,7 +2,7 @@ const test = require('brittle')
 const os = require('os')
 const path = require('path')
 const fs = require('fs')
-const RAF = require('.')
+const RAF = require('..')
 
 const tmp = path.join(os.tmpdir(), 'random-access-file-' + process.pid + '-' + Date.now())
 let i = 0
@@ -24,30 +24,29 @@ test('write and read', function (t) {
   })
 })
 
-test('read empty', function (t) {
-  t.plan(3)
+test('read before write', function (t) {
+  t.plan(2)
 
-  const file = new RAF(gen(), { writable: true })
+  const file = new RAF(gen())
 
   file.read(0, 0, function (err, buf) {
-    t.absent(err, 'no error')
-    t.alike(buf, Buffer.alloc(0), 'empty buffer')
+    t.ok(err, 'not created')
     file.destroy(() => t.pass())
   })
 })
 
-test('read range > file', function (t) {
+test('read range before write', function (t) {
   t.plan(2)
 
   const file = new RAF(gen())
 
   file.read(0, 5, function (err, buf) {
-    t.ok(err, 'not satisfiable')
+    t.ok(err, 'not created')
     file.destroy(() => t.pass())
   })
 })
 
-test('read range > file with data', function (t) {
+test('read range > file', function (t) {
   t.plan(3)
 
   const file = new RAF(gen())
@@ -87,6 +86,25 @@ test('random access write and read', function (t) {
 })
 
 test('re-open', function (t) {
+  t.plan(4)
+
+  const name = gen()
+  const file = new RAF(name)
+
+  file.write(10, Buffer.from('hello'), function (err) {
+    t.absent(err, 'no error')
+    file.close(function (err) {
+      t.absent(err, 'no error')
+      const file2 = new RAF(name)
+      file2.read(10, 5, function (err, buf) {
+        t.absent(err, 'no error')
+        t.alike(buf, Buffer.from('hello'))
+      })
+    })
+  })
+})
+
+test('re-open and truncate', function (t) {
   t.plan(3)
 
   const name = gen()
@@ -94,25 +112,12 @@ test('re-open', function (t) {
 
   file.write(10, Buffer.from('hello'), function (err) {
     t.absent(err, 'no error')
-    const file2 = new RAF(name)
-    file2.read(10, 5, function (err, buf) {
+    file.close(function (err) {
       t.absent(err, 'no error')
-      t.alike(buf, Buffer.from('hello'))
-    })
-  })
-})
-
-test('re-open and truncate', function (t) {
-  t.plan(2)
-
-  const name = gen()
-  const file = new RAF(name)
-
-  file.write(10, Buffer.from('hello'), function (err) {
-    t.absent(err, 'no error')
-    const file2 = new RAF(name, { truncate: true })
-    file2.read(10, 5, function (err, buf) {
-      t.ok(err, 'file should be truncated')
+      const file2 = new RAF(name, { truncate: true })
+      file2.read(10, 5, function (err, buf) {
+        t.ok(err, 'file should be truncated')
+      })
     })
   })
 })
@@ -120,7 +125,7 @@ test('re-open and truncate', function (t) {
 test('truncate with size', function (t) {
   t.plan(3)
 
-  const file = new RAF(gen(), { size: 100, writable: true })
+  const file = new RAF(gen(), { size: 100 })
 
   file.stat(function (err, st) {
     t.absent(err, 'no error')
@@ -135,7 +140,7 @@ test('bad open', {
 }, function (t) {
   t.plan(2)
 
-  const file = new RAF(tmp, { writable: true })
+  const file = new RAF(tmp)
 
   file.open(function (err) {
     t.ok(err)
@@ -280,9 +285,11 @@ test('open and close many times', function (t) {
 
   file.write(0, buf, function (err) {
     t.absent(err, 'no error')
-    loop(5000, function (err) {
+    file.close(function (err) {
       t.absent(err, 'no error')
-      file.destroy(() => t.pass())
+      loop(5000, function (err) {
+        t.absent(err, 'no error')
+      })
     })
   })
 
@@ -309,7 +316,7 @@ test('open and close many times', function (t) {
 test('trigger bad open', function (t) {
   t.plan(3)
 
-  const file = new RAF(gen(), { writable: true })
+  const file = new RAF(gen(), { truncate: true })
 
   file.fd = 10000
   file.open(function (err) {
@@ -321,25 +328,11 @@ test('trigger bad open', function (t) {
   })
 })
 
-test('trigger lock', function (t) {
-  t.plan(4)
-
-  const p = gen()
-  const file = new RAF(p, { writable: true, lock: () => false })
-
-  file.open(function (err) {
-    t.ok(err, 'should error because it is locked')
-    t.is(err.message, 'ELOCKED: File is locked')
-    t.is(err.path, p)
-    t.is(err.code, 'ELOCKED')
-  })
-})
-
 test('cannot escape directory', function (t) {
   t.plan(2)
 
   const name = '../../../../../../../../../../../../../tmp'
-  const file = new RAF(name, { writable: true, directory: tmp })
+  const file = new RAF(name, { truncate: true, directory: tmp })
 
   file.open(function (err) {
     t.absent(err, 'no error')
@@ -349,7 +342,7 @@ test('cannot escape directory', function (t) {
 
 test('directory filename resolves correctly', function (t) {
   const name = 'test.txt'
-  const file = new RAF(name, { writable: true, directory: tmp })
+  const file = new RAF(name, { directory: tmp })
   t.is(file.filename, path.join(tmp, name))
 })
 
