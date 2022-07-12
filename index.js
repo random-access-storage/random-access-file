@@ -6,7 +6,14 @@ const constants = fs.constants || require('constants') // eslint-disable-line n/
 let fsext = null
 try {
   fsext = require('fs-native-extensions')
-} catch {}
+} catch {
+  try { // tmp workaround for places where fsctl is bundled...
+    fsext = {
+      tryLock: require('fsctl').lock,
+      sparse: () => Promise.resolve()
+    }
+  } catch {}
+}
 
 const RDWR = constants.O_RDWR
 const RDONLY = constants.O_RDONLY
