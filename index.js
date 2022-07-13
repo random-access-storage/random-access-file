@@ -52,7 +52,8 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
     const self = this
     const mode = this.mode | (req.create ? CREAT : 0)
 
-    fs.mkdir(path.dirname(this.filename), { recursive: true }, ondir)
+    if (req.create) fs.mkdir(path.dirname(this.filename), { recursive: true }, ondir)
+    else ondir(null)
 
     function ondir (err) {
       if (err) return req.callback(err)
