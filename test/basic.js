@@ -247,21 +247,45 @@ test('rmdir option with non empty parent', function (t) {
   }
 })
 
-test('del', function (t) {
-  t.plan(7)
+test('del, partial file block', function (t) {
+  t.plan(8)
 
-  const file = new RAF(gen(), { size: 100 })
+  const file = new RAF(gen())
 
-  file.del(0, 40, function (err) {
+  file.write(0, Buffer.alloc(100), function (err) {
     t.absent(err, 'no error')
-    file.stat(function (err, st) {
+    file.del(0, 40, function (err) {
       t.absent(err, 'no error')
-      t.is(st.size, 100, 'inplace del, same size')
-      file.del(50, 50, function (err) {
+      file.stat(function (err, st) {
         t.absent(err, 'no error')
-        file.stat(function (err, st) {
+        t.is(st.size, 100, 'inplace del, same size')
+        file.del(50, 50, function (err) {
           t.absent(err, 'no error')
-          t.is(st.size, 50)
+          file.stat(function (err, st) {
+            t.absent(err, 'no error')
+            t.is(st.size, 50)
+            file.destroy(() => t.pass())
+          })
+        })
+      })
+    })
+  })
+})
+
+test('del, whole file block', function (t) {
+  t.plan(6)
+
+  const file = new RAF(gen())
+
+  file.write(0, Buffer.alloc(4096 * 10), function (err) {
+    t.absent(err, 'no error')
+    file.stat(function (err, before) {
+      t.absent(err, 'no error')
+      file.del(4096, 4096 * 4, function (err) {
+        t.absent(err, 'no error')
+        file.stat(function (err, after) {
+          t.absent(err, 'no error')
+          t.ok(after.blocks < before.blocks, 'fewer blocks')
           file.destroy(() => t.pass())
         })
       })
