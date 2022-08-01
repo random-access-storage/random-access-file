@@ -287,6 +287,7 @@ test('del, whole file block', function (t) {
           t.absent(err, 'no error')
           file.stat(function (err, after) {
             t.absent(err, 'no error')
+            t.comment(before.blocks + ' -> ' + after.blocks + ' blocks')
             t.ok(after.blocks < before.blocks, 'fewer blocks')
             file.destroy(() => t.pass())
           })
