@@ -275,7 +275,7 @@ test('del, partial file block', function (t) {
 test('del, whole file block', function (t) {
   t.plan(7)
 
-  const file = new RAF(gen(), { truncate: true })
+  const file = new RAF(gen(), { truncate: true, sparse: true })
 
   file.stat(function (err, st) {
     t.absent(err, 'no error')
