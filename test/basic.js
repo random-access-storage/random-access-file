@@ -273,20 +273,23 @@ test('del, partial file block', function (t) {
 })
 
 test('del, whole file block', function (t) {
-  t.plan(6)
+  t.plan(7)
 
-  const file = new RAF(gen())
+  const file = new RAF(gen(), { truncate: true })
 
-  file.write(0, Buffer.alloc(4096 * 10), function (err) {
+  file.stat(function (err, st) {
     t.absent(err, 'no error')
-    file.stat(function (err, before) {
+    file.write(0, Buffer.alloc(st.blksize * 100), function (err) {
       t.absent(err, 'no error')
-      file.del(4096, 4096 * 4, function (err) {
+      file.stat(function (err, before) {
         t.absent(err, 'no error')
-        file.stat(function (err, after) {
+        file.del(st.blksize * 20, st.blksize * 50, function (err) {
           t.absent(err, 'no error')
-          t.ok(after.blocks < before.blocks, 'fewer blocks')
-          file.destroy(() => t.pass())
+          file.stat(function (err, after) {
+            t.absent(err, 'no error')
+            t.ok(after.blocks < before.blocks, 'fewer blocks')
+            file.destroy(() => t.pass())
+          })
         })
       })
     })
