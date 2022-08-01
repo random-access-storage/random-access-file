@@ -59,7 +59,7 @@ Read a buffer at a specific offset. Callback is called with the buffer read.
 
 #### `file.del(offset, length, callback)`
 
-If offset + length is larger than the file length, truncate the file at offset. Otherwise, unlink the non-partial file blocks between offset and length, leaving partial blocks intact.
+Delete a portion of the file. If deleting from the offset to the end of the file, the file is truncated at the offset. Otherwise, any partial file blocks in the deleted portion are zeroed and, if the file is sparse, the remaining file blocks unlinked.
 
 #### `file.stat(callback)`
 

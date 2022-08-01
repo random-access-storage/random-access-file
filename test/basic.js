@@ -248,28 +248,21 @@ test('rmdir option with non empty parent', function (t) {
 })
 
 test('del', function (t) {
-  t.plan(10)
+  t.plan(7)
 
-  const file = new RAF(gen())
+  const file = new RAF(gen(), { size: 100 })
 
-  file.write(0, Buffer.alloc(100), function (err) {
+  file.del(0, 40, function (err) {
     t.absent(err, 'no error')
     file.stat(function (err, st) {
       t.absent(err, 'no error')
-      t.is(st.size, 100)
-      file.del(0, 40, function (err) {
+      t.is(st.size, 100, 'inplace del, same size')
+      file.del(50, 50, function (err) {
         t.absent(err, 'no error')
         file.stat(function (err, st) {
           t.absent(err, 'no error')
-          t.is(st.size, 100, 'inplace del, same size')
-          file.del(50, 50, function (err) {
-            t.absent(err, 'no error')
-            file.stat(function (err, st) {
-              t.absent(err, 'no error')
-              t.is(st.size, 50)
-              file.destroy(() => t.pass())
-            })
-          })
+          t.is(st.size, 50)
+          file.destroy(() => t.pass())
         })
       })
     })
