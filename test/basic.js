@@ -247,28 +247,74 @@ test('rmdir option with non empty parent', function (t) {
   }
 })
 
-test('del', function (t) {
-  t.plan(10)
+test('del, partial file block', function (t) {
+  t.plan(8)
 
   const file = new RAF(gen())
 
   file.write(0, Buffer.alloc(100), function (err) {
     t.absent(err, 'no error')
-    file.stat(function (err, st) {
+    file.del(0, 40, function (err) {
       t.absent(err, 'no error')
-      t.is(st.size, 100)
-      file.del(0, 40, function (err) {
+      file.stat(function (err, st) {
         t.absent(err, 'no error')
-        file.stat(function (err, st) {
+        t.is(st.size, 100, 'inplace del, same size')
+        file.del(50, 50, function (err) {
           t.absent(err, 'no error')
-          t.is(st.size, 100, 'inplace del, same size')
-          file.del(50, 50, function (err) {
+          file.stat(function (err, st) {
             t.absent(err, 'no error')
-            file.stat(function (err, st) {
-              t.absent(err, 'no error')
-              t.is(st.size, 50)
-              file.destroy(() => t.pass())
-            })
+            t.is(st.size, 50)
+            file.destroy(() => t.pass())
+          })
+        })
+      })
+    })
+  })
+})
+
+test('del, whole file block', function (t) {
+  t.plan(7)
+
+  const file = new RAF(gen(), { truncate: true, sparse: true })
+
+  file.stat(function (err, st) {
+    t.absent(err, 'no error')
+    file.write(0, Buffer.alloc(st.blksize * 100), function (err) {
+      t.absent(err, 'no error')
+      file.stat(function (err, before) {
+        t.absent(err, 'no error')
+        file.del(st.blksize * 20, st.blksize * 50, function (err) {
+          t.absent(err, 'no error')
+          file.stat(function (err, after) {
+            t.absent(err, 'no error')
+            t.comment(before.blocks + ' -> ' + after.blocks + ' blocks')
+            t.ok(after.blocks < before.blocks, 'fewer blocks')
+            file.destroy(() => t.pass())
+          })
+        })
+      })
+    })
+  })
+})
+
+test('del, partial and whole', function (t) {
+  t.plan(7)
+
+  const file = new RAF(gen(), { truncate: true, sparse: true })
+
+  file.stat(function (err, st) {
+    t.absent(err, 'no error')
+    file.write(0, Buffer.alloc(st.blksize * 100), function (err) {
+      t.absent(err, 'no error')
+      file.stat(function (err, before) {
+        t.absent(err, 'no error')
+        file.del(st.blksize * 20 - 483, st.blksize * 50 + 851, function (err) {
+          t.absent(err, 'no error')
+          file.stat(function (err, after) {
+            t.absent(err, 'no error')
+            t.comment(before.blocks + ' -> ' + after.blocks + ' blocks')
+            t.ok(after.blocks < before.blocks, 'fewer blocks')
+            file.destroy(() => t.pass())
           })
         })
       })

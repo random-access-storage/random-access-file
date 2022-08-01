@@ -161,8 +161,16 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
 
     function onstat (err, st) {
       if (err) return req.callback(err)
-      if (req.offset + req.size < st.size) return req.callback(null)
-      fs.ftruncate(fd, req.offset, ontruncate)
+
+      if (req.offset + req.size >= st.size) {
+        return fs.ftruncate(fd, req.offset, ontruncate)
+      }
+
+      if (fsext) {
+        return fsext.trim(fd, req.offset, req.size).then(ontruncate, ontruncate)
+      }
+
+      return req.callback(null)
     }
 
     function ontruncate (err) {
