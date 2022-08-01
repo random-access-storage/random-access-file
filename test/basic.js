@@ -297,6 +297,31 @@ test('del, whole file block', function (t) {
   })
 })
 
+test('del, partial and whole', function (t) {
+  t.plan(7)
+
+  const file = new RAF(gen(), { truncate: true, sparse: true })
+
+  file.stat(function (err, st) {
+    t.absent(err, 'no error')
+    file.write(0, Buffer.alloc(st.blksize * 100), function (err) {
+      t.absent(err, 'no error')
+      file.stat(function (err, before) {
+        t.absent(err, 'no error')
+        file.del(st.blksize * 20 - 483, st.blksize * 50 + 851, function (err) {
+          t.absent(err, 'no error')
+          file.stat(function (err, after) {
+            t.absent(err, 'no error')
+            t.comment(before.blocks + ' -> ' + after.blocks + ' blocks')
+            t.ok(after.blocks < before.blocks, 'fewer blocks')
+            file.destroy(() => t.pass())
+          })
+        })
+      })
+    })
+  })
+})
+
 test('open and close many times', function (t) {
   t.plan(3)
 
