@@ -11,7 +11,7 @@
     "random-access-storage": "^2.1.0"
   },
   "optionalDependencies": {
-    "fs-native-extensions": "^1.0.1"
+    "fs-native-extensions": "^1.1.0"
   },
   "devDependencies": {
     "brittle": "^2.3.1",
