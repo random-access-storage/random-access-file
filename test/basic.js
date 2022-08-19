@@ -322,6 +322,7 @@ test('del, partial and whole', function (t) {
   })
 })
 
+// TODO: remove this test when we deprecate this usage of delete
 test('del, infinity', function (t) {
   t.plan(4)
 
