@@ -252,18 +252,18 @@ test('del, partial file block', function (t) {
 
   const file = new RAF(gen())
 
-  file.write(0, Buffer.alloc(100), function (err) {
+  file.write(0, Buffer.alloc(100, 0xff), function (err) {
     t.absent(err, 'no error')
     file.del(0, 40, function (err) {
       t.absent(err, 'no error')
-      file.stat(function (err, st) {
+      file.read(0, 40, function (err, buf) {
         t.absent(err, 'no error')
-        t.is(st.size, 100, 'inplace del, same size')
+        t.alike(buf, Buffer.alloc(40))
         file.del(50, 50, function (err) {
           t.absent(err, 'no error')
-          file.stat(function (err, st) {
+          file.read(50, 50, function (err, buf) {
             t.absent(err, 'no error')
-            t.is(st.size, 50)
+            t.alike(buf, Buffer.alloc(50))
             file.destroy(() => t.pass())
           })
         })
@@ -316,6 +316,28 @@ test('del, partial and whole', function (t) {
             t.ok(after.blocks < before.blocks, 'fewer blocks')
             file.destroy(() => t.pass())
           })
+        })
+      })
+    })
+  })
+})
+
+test('truncate', function (t) {
+  t.plan(7)
+
+  const file = new RAF(gen(), { size: 100 })
+
+  file.truncate(50, function (err) {
+    t.absent(err, 'no error')
+    file.stat(function (err, st) {
+      t.absent(err, 'no error')
+      t.is(st.size, 50)
+      file.truncate(20, function (err) {
+        t.absent(err, 'no error')
+        file.stat(function (err, st) {
+          t.absent(err, 'no error')
+          t.is(st.size, 20)
+          file.destroy(() => t.pass())
         })
       })
     })

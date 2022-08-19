@@ -8,7 +8,7 @@
   },
   "browser": "./browser.js",
   "dependencies": {
-    "random-access-storage": "^2.1.0"
+    "random-access-storage": "^2.2.0"
   },
   "optionalDependencies": {
     "fs-native-extensions": "^1.1.0"
