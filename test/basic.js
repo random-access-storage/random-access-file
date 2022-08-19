@@ -322,6 +322,21 @@ test('del, partial and whole', function (t) {
   })
 })
 
+test('del, infinity', function (t) {
+  t.plan(4)
+
+  const file = new RAF(gen(), { size: 100 })
+
+  file.del(0, Infinity, function (err) {
+    t.absent(err, 'no error')
+    file.stat(function (err, st) {
+      t.absent(err, 'no error')
+      t.is(st.size, 0)
+      file.destroy(() => t.pass())
+    })
+  })
+})
+
 test('truncate', function (t) {
   t.plan(7)
 
