@@ -153,6 +153,8 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
   }
 
   _del (req) {
+    if (req.size === Infinity) return this._truncate(req) // TODO: remove this when all callsites use truncate
+
     if (!fsext) return req.callback(null)
 
     fsext.trim(this.fd, req.offset, req.size).then(ontrim, ontrim)
