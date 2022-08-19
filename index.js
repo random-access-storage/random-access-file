@@ -22,9 +22,9 @@ const CREAT = constants.O_CREAT
 
 module.exports = class RandomAccessFile extends RandomAccessStorage {
   constructor (filename, opts = {}) {
-    const size = opts.size || (opts.truncate ? 0 : null)
+    const size = opts.size || (opts.truncate ? 0 : -1)
 
-    super({ createAlways: size !== null })
+    super({ createAlways: size >= 0 })
 
     if (opts.directory) filename = path.join(opts.directory, path.resolve('/', filename).replace(/^\w+:\\/, ''))
 
@@ -85,7 +85,7 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
     function onsparse (err) {
       if (err) return onerrorafteropen(err)
 
-      if (self._size === null) return ontruncate(null)
+      if (self._size < 0) return ontruncate(null)
 
       fs.ftruncate(self.fd, self._size, ontruncate)
     }
