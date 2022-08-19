@@ -414,6 +414,29 @@ test('directory filename resolves correctly', function (t) {
   t.is(file.filename, path.join(tmp, name))
 })
 
+test('destroy', async function (t) {
+  t.plan(5)
+
+  const name = gen()
+  const file = new RAF(name)
+
+  file.write(0, Buffer.from('hi'), function (err) {
+    t.absent(err, 'no error')
+    file.read(0, 2, function (err, buf) {
+      t.absent(err, 'no error')
+      t.alike(buf, Buffer.from('hi'))
+      file.destroy(ondestroy)
+    })
+  })
+
+  function ondestroy (err) {
+    t.absent(err, 'no error')
+    fs.stat(name, function (err) {
+      t.is(err && err.code, 'ENOENT', 'should be removed')
+    })
+  }
+})
+
 function gen () {
   return path.join(tmp, ++i + '.txt')
 }
