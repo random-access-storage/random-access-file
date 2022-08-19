@@ -22,10 +22,9 @@ const CREAT = constants.O_CREAT
 
 module.exports = class RandomAccessFile extends RandomAccessStorage {
   constructor (filename, opts = {}) {
-    const size = opts.size || 0
-    const truncate = !!opts.truncate || size > 0
+    const size = opts.size || (opts.truncate ? 0 : -1)
 
-    super({ createAlways: truncate })
+    super({ createAlways: size >= 0 })
 
     if (opts.directory) filename = path.join(opts.directory, path.resolve('/', filename).replace(/^\w+:\\/, ''))
 
@@ -41,7 +40,6 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
     this.mode = readable && writable ? RDWR : (readable ? RDONLY : WRONLY)
 
     this._size = size
-    this._truncate = truncate
     this._rmdir = !!opts.rmdir
     this._lock = opts.lock === true
     this._sparse = opts.sparse === true
@@ -87,7 +85,7 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
     function onsparse (err) {
       if (err) return onerrorafteropen(err)
 
-      if (!self._truncate) return ontruncate(null)
+      if (self._size < 0) return ontruncate(null)
 
       fs.ftruncate(self.fd, self._size, ontruncate)
     }
@@ -155,23 +153,17 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
   }
 
   _del (req) {
-    const fd = this.fd
+    if (!fsext) return req.callback(null)
 
-    fs.fstat(fd, onstat)
+    fsext.trim(this.fd, req.offset, req.size).then(ontrim, ontrim)
 
-    function onstat (err, st) {
-      if (err) return req.callback(err)
-
-      if (req.offset + req.size >= st.size) {
-        return fs.ftruncate(fd, req.offset, ontruncate)
-      }
-
-      if (fsext) {
-        return fsext.trim(fd, req.offset, req.size).then(ontruncate, ontruncate)
-      }
-
-      return req.callback(null)
+    function ontrim (err) {
+      req.callback(err)
     }
+  }
+
+  _truncate (req) {
+    fs.ftruncate(this.fd, req.offset, ontruncate)
 
     function ontruncate (err) {
       req.callback(err)
