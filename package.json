@@ -7,6 +7,10 @@
     "test": "standard && brittle test/*.js"
   },
   "browser": "./browser.js",
+  "files": [
+    "index.js",
+    "browser.js"
+  ],
   "dependencies": {
     "random-access-storage": "^2.2.0"
   },
