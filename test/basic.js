@@ -19,7 +19,7 @@ test('write and read', function (t) {
     file.read(0, 5, function (err, buf) {
       t.absent(err, 'no error')
       t.alike(buf, Buffer.from('hello'))
-      file.destroy(() => t.pass())
+      file.unlink(() => t.pass())
     })
   })
 })
@@ -31,7 +31,7 @@ test('read before write', function (t) {
 
   file.read(0, 0, function (err, buf) {
     t.ok(err, 'not created')
-    file.destroy(() => t.pass())
+    file.unlink(() => t.pass())
   })
 })
 
@@ -42,7 +42,7 @@ test('read range before write', function (t) {
 
   file.read(0, 5, function (err, buf) {
     t.ok(err, 'not created')
-    file.destroy(() => t.pass())
+    file.unlink(() => t.pass())
   })
 })
 
@@ -55,7 +55,7 @@ test('read range > file', function (t) {
     t.absent(err, 'no error')
     file.read(0, 10, function (err, buf) {
       t.ok(err, 'not satisfiable')
-      file.destroy(() => t.pass())
+      file.unlink(() => t.pass())
     })
   })
 })
@@ -130,7 +130,7 @@ test('truncate with size', function (t) {
   file.stat(function (err, st) {
     t.absent(err, 'no error')
     t.is(st.size, 100)
-    file.destroy(() => t.pass())
+    file.unlink(() => t.pass())
   })
 })
 
@@ -159,7 +159,7 @@ test('mkdir path', function (t) {
     file.read(0, 5, function (err, buf) {
       t.absent(err, 'no error')
       t.alike(buf, Buffer.from('hello'))
-      file.destroy(() => t.pass())
+      file.unlink(() => t.pass())
     })
   })
 })
@@ -192,7 +192,7 @@ test('write/read big chunks', async function (t) {
 
   await io
 
-  file.destroy(() => t.pass())
+  file.unlink(() => t.pass())
 })
 
 test('rmdir option', function (t) {
@@ -206,11 +206,11 @@ test('rmdir option', function (t) {
     file.read(0, 2, function (err, buf) {
       t.absent(err, 'no error')
       t.alike(buf, Buffer.from('hi'))
-      file.destroy(ondestroy)
+      file.unlink(onunlink)
     })
   })
 
-  function ondestroy (err) {
+  function onunlink (err) {
     t.absent(err, 'no error')
     fs.stat(path.join(tmp, 'rmdir'), function (err) {
       t.is(err && err.code, 'ENOENT', 'should be removed')
@@ -231,11 +231,11 @@ test('rmdir option with non empty parent', function (t) {
     file.read(0, 2, function (err, buf) {
       t.absent(err, 'no error')
       t.alike(buf, Buffer.from('hi'))
-      file.destroy(ondestroy)
+      file.unlink(onunlink)
     })
   })
 
-  function ondestroy (err) {
+  function onunlink (err) {
     t.absent(err, 'no error')
     fs.stat(path.join(tmp, 'rmdir'), function (err) {
       t.absent(err, 'should not be removed')
@@ -264,7 +264,7 @@ test('del, partial file block', function (t) {
           file.read(50, 50, function (err, buf) {
             t.absent(err, 'no error')
             t.alike(buf, Buffer.alloc(50))
-            file.destroy(() => t.pass())
+            file.unlink(() => t.pass())
           })
         })
       })
@@ -289,7 +289,7 @@ test('del, whole file block', function (t) {
             t.absent(err, 'no error')
             t.comment(before.blocks + ' -> ' + after.blocks + ' blocks')
             t.ok(after.blocks < before.blocks, 'fewer blocks')
-            file.destroy(() => t.pass())
+            file.unlink(() => t.pass())
           })
         })
       })
@@ -314,7 +314,7 @@ test('del, partial and whole', function (t) {
             t.absent(err, 'no error')
             t.comment(before.blocks + ' -> ' + after.blocks + ' blocks')
             t.ok(after.blocks < before.blocks, 'fewer blocks')
-            file.destroy(() => t.pass())
+            file.unlink(() => t.pass())
           })
         })
       })
@@ -333,7 +333,7 @@ test('del, infinity', function (t) {
     file.stat(function (err, st) {
       t.absent(err, 'no error')
       t.is(st.size, 0)
-      file.destroy(() => t.pass())
+      file.unlink(() => t.pass())
     })
   })
 })
@@ -353,7 +353,7 @@ test('truncate', function (t) {
         file.stat(function (err, st) {
           t.absent(err, 'no error')
           t.is(st.size, 20)
-          file.destroy(() => t.pass())
+          file.unlink(() => t.pass())
         })
       })
     })
@@ -397,21 +397,6 @@ test('open and close many times', function (t) {
   }
 })
 
-test('trigger bad open', function (t) {
-  t.plan(3)
-
-  const file = new RAF(gen(), { truncate: true })
-
-  file.fd = 10000
-  file.open(function (err) {
-    t.ok(err, 'should error trying to close old fd')
-    file.open(function (err) {
-      t.absent(err, 'no error')
-      file.destroy(() => t.pass())
-    })
-  })
-})
-
 test('cannot escape directory', function (t) {
   t.plan(2)
 
@@ -430,7 +415,7 @@ test('directory filename resolves correctly', function (t) {
   t.is(file.filename, path.join(tmp, name))
 })
 
-test('destroy', async function (t) {
+test('unlink', async function (t) {
   t.plan(5)
 
   const name = gen()
@@ -441,11 +426,11 @@ test('destroy', async function (t) {
     file.read(0, 2, function (err, buf) {
       t.absent(err, 'no error')
       t.alike(buf, Buffer.from('hi'))
-      file.destroy(ondestroy)
+      file.unlink(onunlink)
     })
   })
 
-  function ondestroy (err) {
+  function onunlink (err) {
     t.absent(err, 'no error')
     fs.stat(name, function (err) {
       t.is(err && err.code, 'ENOENT', 'should be removed')
