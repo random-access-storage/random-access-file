@@ -20,6 +20,31 @@ const RDONLY = constants.O_RDONLY
 const WRONLY = constants.O_WRONLY
 const CREAT = constants.O_CREAT
 
+class Pool {
+  constructor (maxSize) {
+    this.maxSize = maxSize
+    this.active = []
+  }
+
+  _onactive (file) {
+    // suspend a random one when the pool
+    if (this.active.length >= this.maxSize) {
+      const r = Math.floor(Math.random() * this.active.length)
+      this.active[r].suspend()
+    }
+
+    file._pi = this.active.push(file) - 1
+  }
+
+  _oninactive (file) {
+    const head = this.active.pop()
+    if (head !== file) {
+      head._pi = file._pi
+      this.active[head._pi] = head
+    }
+  }
+}
+
 module.exports = class RandomAccessFile extends RandomAccessStorage {
   constructor (filename, opts = {}) {
     const size = opts.size || (opts.truncate ? 0 : -1)
@@ -39,12 +64,18 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
 
     this.mode = readable && writable ? RDWR : (readable ? RDONLY : WRONLY)
 
+    this._pi = 0 // pool index
+    this._pool = opts.pool || null
     this._size = size
     this._rmdir = !!opts.rmdir
     this._lock = opts.lock === true
     this._sparse = opts.sparse === true
     this._alloc = opts.alloc || Buffer.allocUnsafe
     this._alwaysCreate = size >= 0
+  }
+
+  static createPool (maxSize) {
+    return new Pool(maxSize)
   }
 
   _open (req) {
@@ -92,7 +123,7 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
 
     function ontruncate (err) {
       if (err) return onerrorafteropen(err)
-
+      if (self._pool !== null) self._pool._onactive(self)
       req.callback(null)
     }
 
@@ -180,6 +211,7 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
 
     function onclose (err) {
       if (err) return req.callback(err)
+      if (self._pool !== null) self._pool._oninactive(self)
       self.fd = 0
       req.callback(null)
     }
