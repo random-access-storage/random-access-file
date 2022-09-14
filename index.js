@@ -24,7 +24,7 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
   constructor (filename, opts = {}) {
     const size = opts.size || (opts.truncate ? 0 : -1)
 
-    super({ createAlways: size >= 0 })
+    super()
 
     if (opts.directory) filename = path.join(opts.directory, path.resolve('/', filename).replace(/^\w+:\\/, ''))
 
@@ -44,20 +44,20 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
     this._lock = opts.lock === true
     this._sparse = opts.sparse === true
     this._alloc = opts.alloc || Buffer.allocUnsafe
+    this._alwaysCreate = size >= 0
   }
 
   _open (req) {
+    const create = this._alwaysCreate || this.writing // .writing comes from RAS
     const self = this
-    const mode = this.mode | (req.create ? CREAT : 0)
+    const mode = this.mode | (create ? CREAT : 0)
 
-    if (req.create) fs.mkdir(path.dirname(this.filename), { recursive: true }, ondir)
+    if (create) fs.mkdir(path.dirname(this.filename), { recursive: true }, ondir)
     else ondir(null)
 
     function ondir (err) {
       if (err) return req.callback(err)
-
-      if (self.fd) fs.close(self.fd, oncloseold)
-      else fs.open(self.filename, mode, onopen)
+      fs.open(self.filename, mode, onopen)
     }
 
     function onopen (err, fd) {
@@ -88,13 +88,6 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
       if (self._size < 0) return ontruncate(null)
 
       fs.ftruncate(self.fd, self._size, ontruncate)
-    }
-
-    function oncloseold (err) {
-      if (err) return onerrorafteropen(err)
-
-      self.fd = 0
-      fs.open(self.filename, mode, onopen)
     }
 
     function ontruncate (err) {
@@ -192,7 +185,7 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
     }
   }
 
-  _destroy (req) {
+  _unlink (req) {
     const self = this
 
     const root = this.directory && path.resolve(path.join(this.directory, '.'))
