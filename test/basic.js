@@ -361,6 +361,7 @@ test('truncate', function (t) {
 })
 
 test('open and close many times', function (t) {
+  t.timeout(120000) // on ci sometimes this takes a while
   t.plan(3)
 
   const name = gen()
