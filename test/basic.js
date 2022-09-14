@@ -361,6 +361,7 @@ test('truncate', function (t) {
 })
 
 test('open and close many times', function (t) {
+  t.timeout(120000) // on ci sometimes this takes a while
   t.plan(3)
 
   const name = gen()
@@ -436,6 +437,37 @@ test('unlink', async function (t) {
       t.is(err && err.code, 'ENOENT', 'should be removed')
     })
   }
+})
+
+test('pool', function (t) {
+  t.plan(8)
+
+  const pool = RAF.createPool(2)
+
+  const a = new RAF(gen(), { pool })
+  const b = new RAF(gen(), { pool })
+  const c = new RAF(gen(), { pool })
+
+  a.write(0, Buffer.from('hello'), function (err) {
+    t.absent(err, 'no error')
+    b.write(0, Buffer.from('hello'), function (err) {
+      t.absent(err, 'no error')
+      c.write(0, Buffer.from('hello'), function (err) {
+        t.absent(err, 'no error')
+        setTimeout(function () {
+          t.is(pool.active.length, 2)
+          const all = [a, b, c]
+          t.is(all.filter(f => f.suspended).length, 1)
+
+          for (const f of all) {
+            f.read(0, 5, function (_, buf) {
+              t.alike(buf, Buffer.from('hello'))
+            })
+          }
+        }, 100)
+      })
+    })
+  })
 })
 
 function gen () {
