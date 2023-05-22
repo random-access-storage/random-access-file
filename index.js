@@ -235,7 +235,12 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
 
     function onrmdir (err) {
       dir = path.join(dir, '..')
-      if (err || dir === root) return req.callback(null)
+
+      const isAlreadyUnlinked = err && err.code === 'ENOENT'
+      const isNotEmpty = err && err.code === 'ENOTEMPTY'
+      if (isAlreadyUnlinked || isNotEmpty || dir === root) return req.callback(null)
+
+      if (err) return req.callback(err)
       fs.rmdir(dir, onrmdir)
     }
   }
