@@ -226,6 +226,8 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
     fs.unlink(this.filename, onunlink)
 
     function onunlink (err) {
+      if (err?.code === 'ENOENT') err = null
+
       if (!self._rmdir || !root || dir === root) return req.callback(err)
       fs.rmdir(dir, onrmdir)
     }
