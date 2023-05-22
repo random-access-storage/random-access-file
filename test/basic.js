@@ -439,6 +439,20 @@ test('unlink', async function (t) {
   }
 })
 
+test('unlink on uncreated file does not reject', async function (t) {
+  t.plan(2)
+  const name = gen()
+
+  const file = new RAF(name)
+  t.is(fs.existsSync(file.filename), false) // Not yet created, since no write
+
+  file.unlink(onunlink)
+
+  function onunlink (err) {
+    t.absent(err, 'no error')
+  }
+})
+
 test('pool', function (t) {
   t.plan(8)
 
