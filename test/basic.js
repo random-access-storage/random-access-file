@@ -484,6 +484,24 @@ test('pool', function (t) {
   })
 })
 
+test('readonly mode', function (t) {
+  t.plan(1)
+
+  const filename = gen()
+  const f = new RAF(filename)
+
+  f.write(0, Buffer.from('hello world'), function () {
+    f.close(function () {
+      const r = new RAF(filename, { writable: false })
+
+      r.read(0, 5, function (_, data) {
+        t.alike(data, Buffer.from('hello'))
+        r.close()
+      })
+    })
+  })
+})
+
 function gen () {
   return path.join(tmp, ++i + '.txt')
 }
