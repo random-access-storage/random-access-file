@@ -114,6 +114,7 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
     }
 
     function onsparse (err) {
+      console.log('sparse open', err, self.writable)
       if (err) return onerrorafteropen(err)
 
       if (self._size < 0) return ontruncate(null)
