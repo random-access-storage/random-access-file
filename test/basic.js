@@ -474,7 +474,7 @@ test('pool', function (t) {
     t.absent(err, 'no error')
     if (--pending !== 0) return
     setTimeout(function () {
-      t.is(pool.active.length, POOL_SIZE)
+      t.is(pool.active.size, POOL_SIZE)
       t.is(rafs.filter(f => f.suspended).length, RAF_COUNT - POOL_SIZE)
 
       for (const f of rafs) {
