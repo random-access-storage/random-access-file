@@ -179,20 +179,43 @@ test('write/read big chunks', async function (t) {
     io.absent(err, 'no error')
     file.read(0, bigBuffer.length, function (err, buf) {
       io.absent(err, 'no error')
-      io.alike(buf, bigBuffer)
+      io.ok(buf.equals(bigBuffer))
     })
   })
   file.write(bigBuffer.length * 2, bigBuffer, function (err) {
     io.absent(err, 'no error')
     file.read(bigBuffer.length * 2, bigBuffer.length, function (err, buf) {
       io.absent(err, 'no error')
-      io.alike(buf, bigBuffer)
+      io.ok(buf.equals(bigBuffer))
     })
   })
 
   await io
 
   file.unlink(() => t.pass())
+})
+
+test('read tons of small chunks', function (t) {
+  t.plan(1)
+  const file = new RAF(gen())
+  const bigBuffer = Buffer.alloc(10 * 1024 * 1024)
+  let same = true
+
+  bigBuffer.fill('hey. hey. how are you doing?. i am good thanks how about you? i am good')
+
+  file.write(0, bigBuffer, function () {
+    let offset = 0
+    file.read(offset, 128, function loop (_, buf) {
+      if (same) same = buf.equals(bigBuffer.subarray(offset, offset + 128))
+      offset += 128
+      if (offset >= bigBuffer.byteLength) {
+        t.ok(same, 'all sub chunks match')
+        t.end()
+      } else {
+        file.read(offset, 128, loop)
+      }
+    })
+  })
 })
 
 test('rmdir option', function (t) {
