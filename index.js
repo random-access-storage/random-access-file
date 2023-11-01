@@ -19,6 +19,7 @@ const RDWR = constants.O_RDWR
 const RDONLY = constants.O_RDONLY
 const WRONLY = constants.O_WRONLY
 const CREAT = constants.O_CREAT
+const PAGE_BUFFER_SIZE = 65536
 
 class Pool {
   constructor (maxSize) {
@@ -72,6 +73,7 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
     this._sparse = opts.sparse === true
     this._alloc = opts.alloc || Buffer.allocUnsafe
     this._alwaysCreate = size >= 0
+    this._pages = new Map()
   }
 
   static createPool (maxSize) {
@@ -140,6 +142,7 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
   }
 
   _write (req) {
+    const self = this
     const data = req.data
     const fd = this.fd
 
@@ -151,7 +154,12 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
       req.size -= wrote
       req.offset += wrote
 
-      if (!req.size) return req.callback(null)
+      if (!req.size) {
+        self._pages.clear()
+        req.callback(null)
+        return
+      }
+
       fs.write(fd, data, data.length - req.size, req.size, req.offset, onwrite)
     }
   }
@@ -159,24 +167,117 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
   _read (req) {
     const self = this
     const data = req.data || this._alloc(req.size)
-    const fd = this.fd
+    const index = Math.floor(req.offset / PAGE_BUFFER_SIZE)
 
-    if (!req.size) return process.nextTick(readEmpty, req)
-    fs.read(fd, data, 0, req.size, req.offset, onread)
+    if (req.size === 0) {
+      req.callback(null, data)
+      return
+    }
+
+    let offset = 0
+    let rel = req.offset - (index * PAGE_BUFFER_SIZE)
+
+    this._loadPage(index, onpage)
+
+    function onpage (err, page) {
+      if (err) {
+        req.callback(err)
+        return
+      }
+      if (page.size !== PAGE_BUFFER_SIZE && req.offset + req.size > page.index * PAGE_BUFFER_SIZE + page.size) {
+        req.callback(createReadError(self.filename, req.offset, req.size))
+        return
+      }
+
+      const missing = data.byteLength - offset
+      const chunk = page.buffer.subarray(rel, rel + missing)
+
+      data.set(chunk, offset)
+
+      offset += chunk.byteLength
+      rel = 0
+
+      if (offset === data.byteLength) {
+        req.callback(null, data)
+        return
+      }
+
+      self._loadPage(page.index + 1, onpage)
+    }
+  }
+
+  _loadPage (index, onpage) {
+    const self = this
+
+    let p = this._pages.get(index)
+
+    if (p) {
+      if (p.buffer) {
+        onpage(null, p)
+        return
+      }
+      p.waiting.push(onpage)
+      return
+    }
+
+    p = {
+      index,
+      size: 0,
+      buffer: null,
+      waiting: []
+    }
+
+    this._pages.set(index, p)
+
+    const fd = this.fd
+    const buffer = this._alloc(PAGE_BUFFER_SIZE)
+
+    let size = buffer.byteLength
+    let offset = index * PAGE_BUFFER_SIZE
+
+    fs.read(fd, buffer, 0, size, offset, onread)
 
     function onread (err, read) {
-      if (err) return req.callback(err)
-      if (!read) return req.callback(createReadError(self.filename, req.offset, req.size))
+      if (err) {
+        done(err, null)
+        return
+      }
 
-      req.size -= read
-      req.offset += read
+      if (!read) {
+        buffer.fill(0, buffer.byteLength - size)
+        done(null, p)
+        return
+      }
 
-      if (!req.size) return req.callback(null, data)
-      fs.read(fd, data, data.length - req.size, req.size, req.offset, onread)
+      size -= read
+      offset += read
+      p.size += read
+
+      if (size === 0) {
+        done(null, p)
+        return
+      }
+
+      fs.read(fd, buffer, buffer.byteLength - size, size, offset, onread)
+    }
+
+    function done (err, p) {
+      const waiting = p.waiting
+
+      if (err) {
+        self._pages.delete(index)
+      } else {
+        p.waiting = null
+        p.buffer = buffer
+      }
+
+      onpage(err, p)
+      for (let i = 0; i < waiting.length; i++) waiting[i](err, p)
     }
   }
 
   _del (req) {
+    const self = this
     if (req.size === Infinity) return this._truncate(req) // TODO: remove this when all callsites use truncate
 
     if (!fsext) return req.callback(null)
@@ -184,14 +285,17 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
     fsext.trim(this.fd, req.offset, req.size).then(ontrim, ontrim)
 
     function ontrim (err) {
+      self._pages.clear()
       req.callback(err)
     }
   }
 
   _truncate (req) {
+    const self = this
     fs.ftruncate(this.fd, req.offset, ontruncate)
 
     function ontruncate (err) {
+      self._pages.clear()
       req.callback(err)
     }
   }
@@ -239,10 +343,6 @@ module.exports = class RandomAccessFile extends RandomAccessStorage {
       fs.rmdir(dir, onrmdir)
     }
   }
-}
-
-function readEmpty (req) {
-  req.callback(null, Buffer.alloc(0))
 }
 
 function createLockError (path) {
