@@ -79,7 +79,7 @@ Stat the storage. Should return an object with useful information about the unde
 
 Close the underlying file descriptor.
 
-#### `file.destroy([callback])`
+#### `file.unlink([callback])`
 
 Unlink the underlying file.
 
