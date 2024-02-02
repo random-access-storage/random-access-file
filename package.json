@@ -11,6 +11,16 @@
     "index.js",
     "browser.js"
   ],
+  "imports": {
+    "fs": {
+      "bare": "bare-fs",
+      "default": "fs"
+    },
+    "path": {
+      "bare": "bare-path",
+      "default": "fs"
+    }
+  },
   "dependencies": {
     "random-access-storage": "^3.0.0"
   },
