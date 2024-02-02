@@ -18,7 +18,7 @@
     },
     "path": {
       "bare": "bare-path",
-      "default": "fs"
+      "default": "path"
     }
   },
   "dependencies": {
