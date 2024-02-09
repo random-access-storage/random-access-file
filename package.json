@@ -25,6 +25,8 @@
     "random-access-storage": "^3.0.0"
   },
   "optionalDependencies": {
+    "bare-fs": "^2.1.1",
+    "bare-path": "^2.1.0",
     "fs-native-extensions": "^1.1.0"
   },
   "devDependencies": {
