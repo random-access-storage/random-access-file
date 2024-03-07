@@ -477,34 +477,36 @@ test('unlink on uncreated file does not reject', async function (t) {
 })
 
 test('pool', function (t) {
-  t.plan(8)
+  const POOL_SIZE = 2
+  const RAF_COUNT = 10
 
-  const pool = RAF.createPool(2)
+  t.plan((RAF_COUNT * 2) + 2)
 
-  const a = new RAF(gen(), { pool })
-  const b = new RAF(gen(), { pool })
-  const c = new RAF(gen(), { pool })
+  const pool = RAF.createPool(POOL_SIZE)
 
-  a.write(0, Buffer.from('hello'), function (err) {
+  const rafs = []
+  let pending = RAF_COUNT
+
+  for (let i = 0; i < RAF_COUNT; i++) {
+    const raf = new RAF(gen(), { pool })
+    rafs.push(raf)
+    raf.write(0, Buffer.from('hello'), done)
+  }
+
+  function done (err) {
     t.absent(err, 'no error')
-    b.write(0, Buffer.from('hello'), function (err) {
-      t.absent(err, 'no error')
-      c.write(0, Buffer.from('hello'), function (err) {
-        t.absent(err, 'no error')
-        setTimeout(function () {
-          t.is(pool.active.length, 2)
-          const all = [a, b, c]
-          t.is(all.filter(f => f.suspended).length, 1)
+    if (--pending !== 0) return
+    setTimeout(function () {
+      t.is(pool.active.size, POOL_SIZE)
+      t.is(rafs.filter(f => f.suspended).length, RAF_COUNT - POOL_SIZE)
 
-          for (const f of all) {
-            f.read(0, 5, function (_, buf) {
-              t.alike(buf, Buffer.from('hello'))
-            })
-          }
-        }, 100)
-      })
-    })
-  })
+      for (const f of rafs) {
+        f.read(0, 5, function (_, buf) {
+          t.alike(buf, Buffer.from('hello'))
+        })
+      }
+    }, 100)
+  }
 })
 
 test('readonly mode', function (t) {
