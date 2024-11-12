@@ -1,19 +1,12 @@
 const RandomAccessStorage = require('random-access-storage')
 const fs = require('fs')
 const path = require('path')
-const constants = fs.constants || require('constants') // eslint-disable-line n/no-deprecated-api
+const constants = fs.constants
 
 let fsext = null
 try {
   fsext = require('fs-native-extensions')
-} catch {
-  try { // tmp workaround for places where fsctl is bundled...
-    fsext = {
-      tryLock: require('fsctl').lock,
-      sparse: () => Promise.resolve()
-    }
-  } catch {}
-}
+} catch {}
 
 const RDWR = constants.O_RDWR
 const RDONLY = constants.O_RDONLY
