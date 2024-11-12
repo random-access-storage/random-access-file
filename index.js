@@ -16,25 +16,21 @@ const CREAT = constants.O_CREAT
 class Pool {
   constructor (maxSize) {
     this.maxSize = maxSize
-    this.active = []
+    this.active = new Set()
   }
 
   _onactive (file) {
-    // suspend a random one when the pool
-    if (this.active.length >= this.maxSize) {
-      const r = Math.floor(Math.random() * this.active.length)
-      this.active[r].suspend()
+    // suspend least recently inserted
+    if (this.active.size >= this.maxSize) {
+      const toSuspend = this.active[Symbol.iterator]().next().value
+      toSuspend.suspend()
+      this.active.delete(toSuspend)
     }
-
-    file._pi = this.active.push(file) - 1
+    this.active.add(file)
   }
 
   _oninactive (file) {
-    const head = this.active.pop()
-    if (head !== file) {
-      head._pi = file._pi
-      this.active[head._pi] = head
-    }
+    this.active.delete(file)
   }
 }
 
